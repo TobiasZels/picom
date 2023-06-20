@@ -3,9 +3,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <xcb/composite.h>
 #include <xcb/render.h>
 #include <xcb/sync.h>
+#include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
 #include <xcb/xcb_renderutil.h>
 
@@ -241,6 +243,8 @@ uint32_t make_rounded_window_shape(xcb_render_trapezoid_t traps[], uint32_t max_
 	return n;
 }
 
+// Probably the right function 
+
 void render(session_t *ps, int x, int y, int dx, int dy, int wid, int hei, int fullwid,
             int fullhei, double opacity, bool argb, bool neg, int cr,
             xcb_render_picture_t pict, glx_texture_t *ptex, const region_t *reg_paint,
@@ -323,6 +327,8 @@ void render(session_t *ps, int x, int y, int dx, int dy, int wid, int hei, int f
 				    to_i16_checked(x), to_i16_checked(y), 0, 0,
 				    to_i16_checked(dx), to_i16_checked(dy),
 				    to_u16_checked(wid), to_u16_checked(hei));
+
+				// TODO:
 				if (clip) {
 					xcb_render_free_picture(ps->c, p_tmp);
 				}
@@ -347,6 +353,7 @@ void render(session_t *ps, int x, int y, int dx, int dy, int wid, int hei, int f
 #endif
 }
 
+//TODO: xcb render picture = 
 static inline void
 paint_region(session_t *ps, const struct managed_win *w, int x, int y, int wid, int hei,
              double opacity, const region_t *reg_paint, xcb_render_picture_t pict) {
@@ -356,9 +363,24 @@ paint_region(session_t *ps, const struct managed_win *w, int x, int y, int wid, 
 	const int fullhei = w ? w->heightb : 0;
 	const bool argb = (w && (win_has_alpha(w) || ps->o.force_win_blend));
 	const bool neg = (w && w->invert_color);
+	
+	xcb_render_picture_t pic = xcb_generate_id(ps->c);
 
-	render(ps, x, y, dx, dy, wid, hei, fullwid, fullhei, opacity, argb, neg,
-	       w ? w->corner_radius : 0, pict,
+	int width = 200;
+	int height = 200;
+	xcb_image_t *image;
+	uint32_t *image_data = calloc(width * height, sizeof(uint32_t));
+	for (int i = 0; i < width*height; i++){
+		image_data[i] = 0xFFFF0000;
+	}
+
+	xcb_create_pixmap(ps->c, w, pic, w, width, height);
+	log_error("Comp worked");
+	printf("Welcome");
+	fflush(stdout);
+	
+	render(ps, x, y, dx, dy, wid, hei, fullwid, fullhei, opacity, argb, true,
+	       w ? w->corner_radius : 0, pic,
 	       (w ? w->paint.ptex : ps->root_tile_paint.ptex), reg_paint,
 #ifdef CONFIG_OPENGL
 	       w ? &ps->glx_prog_win : NULL
@@ -645,7 +667,8 @@ static bool get_root_tile(session_t *ps) {
 
 /**
  * Paint root window content.
- */
+* TODO:
+  */
 static void paint_root(session_t *ps, const region_t *reg_paint) {
 	// If there is no root tile pixmap, try getting one.
 	// If that fails, give up.

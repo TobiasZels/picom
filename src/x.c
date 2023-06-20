@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+
+
 #include <X11/Xutil.h>
 #include <pixman.h>
 #include <xcb/composite.h>

@@ -20,9 +20,10 @@ required_xcb_packages = [
 ]
 
 required_packages = [
-	'x11', 'x11-xcb', 'xcb-renderutil', 'xcb-image', 'xext', 'pixman-1'
+	'x11', 'x11-xcb', 'xcb-renderutil', 'xcb-image', 'xext', 'pixman-1', 'libpng', 'lept'
 ]
 
+dependency('lept')
 foreach i : required_packages
 	base_deps += [dependency(i, required: true)]
 endforeach

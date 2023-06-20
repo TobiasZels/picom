@@ -189,6 +189,11 @@ module libc [system] {
     header "/usr/include/stdio.h"
   }
 
+    module png {
+    export *
+    header "/usr/include/png.h"
+  }
+
   module stdlib [system] {
     export *
     header "/usr/include/stdlib.h"

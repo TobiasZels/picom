@@ -30,6 +30,8 @@
 #include <xcb/render.h>
 #include <xcb/sync.h>
 #include <xcb/xfixes.h>
+#include <xcb/xcb_image.h>
+
 
 #include <ev.h>
 #include <test.h>
@@ -295,6 +297,7 @@ schedule:
 	assert(!ev_is_active(&ps->draw_timer));
 	ev_timer_set(&ps->draw_timer, delay_s, 0);
 	ev_timer_start(ps->loop, &ps->draw_timer);
+
 }
 
 void queue_redraw(session_t *ps) {
@@ -315,8 +318,10 @@ void queue_redraw(session_t *ps) {
 	// If --benchmark is used, redraw is always queued
 	if (!ps->redraw_needed && !ps->o.benchmark) {
 		schedule_render(ps, false);
+
 	}
 	ps->redraw_needed = true;
+
 }
 
 /**
@@ -1792,6 +1797,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 	bool fade_running = false;
 	bool animation = false;
 	bool was_redirected = ps->redirected;
+
 	auto bottom = paint_preprocess(ps, &fade_running, &animation);
 	ps->tmout_unredir_hit = false;
 
@@ -2903,11 +2909,13 @@ int main(int argc, char **argv) {
 		if (need_fork) {
 			// Finishing up daemonization
 			// Close files
+			/*
 			if (fclose(stdout) || fclose(stderr) || fclose(stdin)) {
 				log_fatal("Failed to close standard input/output");
 				ret_code = 1;
 				break;
 			}
+			*/
 			// Make us the session and process group leader so we don't get
 			// killed when our parent die.
 			setsid();
