@@ -56,9 +56,6 @@ region_t get_damage(session_t *ps, bool all_damage) {
 	return region;
 }
 
-// TZ
-
-
 void handle_device_reset(session_t *ps) {
 	log_error("Device reset detected");
 	// Wait for reset to complete
@@ -221,9 +218,8 @@ void paint_all_new(session_t *ps, struct managed_win *t) {
 	// Each window has a reg_ignore, which is the region obscured by all the windows
 	// on top of that window. This is used to reduce the number of pixels painted.
 	//
-	// Whether this is beneficial is to be determined XXX TZ
+	// Whether this is beneficial is to be determined XXX
 	for (auto w = t; w; w = w->prev_trans) {
-
 		pixman_region32_subtract(&reg_visible, &ps->screen_reg, w->reg_ignore);
 		assert(!(w->flags & WIN_FLAGS_IMAGE_ERROR));
 		assert(!(w->flags & WIN_FLAGS_PIXMAP_STALE));

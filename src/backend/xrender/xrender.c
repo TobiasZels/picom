@@ -16,7 +16,7 @@
 #include <xcb/render.h>
 #include <xcb/sync.h>
 #include <xcb/xcb.h>
-#include <png.h>
+#include <qrencode.h>
 
 #include "backend/backend.h"
 #include "backend/backend_common.h"
@@ -262,9 +262,7 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 		// Apply image properties using a temporary image, because the source
 		// image is transparent. Otherwise the properties can be applied directly
 		// on the target image.
-		//TZ
 		
-
 		auto tmp_pict =
 		    x_create_picture_with_visual(xd->base.c, xd->base.root, inner->width,
 		                                 inner->height, inner->visual, 0, NULL);
@@ -278,33 +276,6 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 		                          to_i16_checked(-dst.y), &reg);
 
 
-		/*
-		xcb_gcontext_t gc = xcb_generate_id(xd->base.c);
-		xcb_create_gc(xd->base.c, gc, pixmap, 0, NULL);
-		xcb_put_image(xd->base.c, XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap, gc, width, height, 0,0,0,32, width*height*4, (uint8_t*)image_data);
-
-		xcb_render_query_pict_formats_cookie_t formats_cookie = xcb_render_query_pict_formats(xd->base.c);
-		 xcb_render_query_pict_formats_reply_t* formats_reply = xcb_render_query_pict_formats_reply(xd->base.c, formats_cookie, NULL); 
-		 xcb_render_pictforminfo_iterator_t formats_iterator = xcb_render_query_pict_formats_formats_iterator(formats_reply);
-		  xcb_render_pictformat_t preferred_format = 0; 
-		  while (formats_iterator.rem > 0) 
-		  { 
-			xcb_render_pictforminfo_t* format_info = formats_iterator.data; 
-			if (format_info->type == XCB_RENDER_PICT_TYPE_DIRECT && format_info->direct.alpha_mask > 0) { 
-				preferred_format = format_info->id; break; 
-				} 
-				xcb_render_pictformat_next(&formats_iterator); 
-		}
-
-		xcb_render_picture_t picture = xcb_generate_id(xd->base.c);
-		xcb_render_create_picture(xd->base.c, picture, xd->base.root, preferred_format, 0, pixmap);
-		//xcb_free_gc(xd->base.c, gc);
-		xcb_free_pixmap(xd->base.c, pixmap);
-		printf("free_pixmap");
-		fflush(stdout);
-		// Copy source -> tmp
-		
-		*/
 		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC, inner->pict,
 		                     XCB_NONE, tmp_pict, 0, 0, 0, 0, 0, 0, tmpw, tmph);
 		//xcb_render_free_picture(xd->base.c, picture);
@@ -365,215 +336,6 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 		                     mask_dst_x, mask_dst_y, to_i16_checked(dst.x),
 		                     to_i16_checked(dst.y), tmpew, tmpeh);
 
-		// TZ THIS IS IT
-
-		/*
-		int width = 500;
-		int height = 500;
-
-		uint32_t* image_data = malloc(width * height * sizeof(uint32_t));
-
-		for (int i = 0; i < width * height; ++i){
-			if(i%2==0){
-				image_data[i] = 0xBFBFBF;
-			}else{
-				image_data[i] = 0xA71F8B;
-			}
-			
-		}
-		*/
-		PIX* pix = pixRead("src/marker.png");
-
-		if(pix == NULL){
-			printf("FAIL");
-		}
-
-		int width = pixGetWidth(pix);
-		int height = pixGetHeight(pix);
-
-		uint32_t* image_data = malloc(width * height * sizeof(uint32_t));
-
-		for(int y = 0; y < height; ++y){
-			for(int x = 0; x < width; ++x){
-
-				l_uint32 pixel; 
-
-				pixGetPixel(pix, x, y, &pixel);			
-				image_data[y*width + x] = pixel;
-
-			}
-		}
-
-		pixDestroy(&pix);
-		/*
-		uint32_t* pixels = NULL;
-
-		size_t width_te;
-		size_t height_te;
-
-		uint32_t* image_data = malloc(width_te * height_te * sizeof(uint32_t));
-		for (size_t y = 0; y < height_te; ++y){
-			for (size_t x = 0; x < height_te; ++x){
-
-				uint32_t pixel = pixels[y * width_te + x];
-
-				image_data[y * width_te + x] = pixel;
-				char str[20];
-				sprintf(str, "%d", pixel);
-				printf(str);
-			}
-		}
-		*/
-
-	/*
-		printf("free_pixmap");
-		char str[20];
-		sprintf(str, "%d", image_data[32]);
-		printf(str);
-		fflush(stdout);
-		*/
-		//free(pixels);
-
-		// Read the image data
-
-		// Create an XCB pixmap from the image data
-		/*
-			xcb_pixmap_t pixmap = x_create_pixmap(xd->base.c, inner->depth, xd->base.root, width, height);
-		// Put the image data into the pixmap
-		xcb_render_pictforminfo_t* format;
-
-		format = x_get_pictform_for_visual(xd->base.c, xd->default_visual);
-
-
-		// Create an XCB render picture from the pixmap
-		xcb_render_picture_t picture = x_create_picture_with_pictfmt_and_pixmap(xd->base.c, format, pixmap, 0, NULL);
-		printf("free_pixmap");
-		fflush(stdout);
-		//xcb_render_create_picture(xd->base.c, picture,xd->base.root , format, XCB_NONE, image_data);
-		*/
-
-		
-		
-
-	xcb_pixmap_t pixmap;
-	xcb_render_picture_t picture;
-	xcb_render_create_picture_value_list_t pa;
-	xcb_render_color_t col;
-	xcb_rectangle_t rect;
-
-	pixmap = x_create_pixmap(xd->base.c, true ? 32 : 8, xd->base.root, width, height);
-	if (!pixmap)
-		picture = XCB_NONE;
-
-	pa.repeat = 1;
-	picture = x_create_picture_with_standard_and_pixmap(
-	    xd->base.c, true ? XCB_PICT_STANDARD_ARGB_32 : XCB_PICT_STANDARD_A_8, pixmap,
-	    XCB_RENDER_REPEAT_NONE, &pa);
-
-	if (!picture) {
-		xcb_free_pixmap(xd->base.c, pixmap);
-		picture = XCB_NONE;
-	}
-	xcb_render_pictforminfo_t* format;
-
-	format = x_get_pictform_for_visual(xd->base.c, xd->default_visual);
-
-	col.alpha = (uint16_t)(1 * 0xffff);
-	col.red = (uint16_t)(1 * 0xffff);
-	col.green = (uint16_t)(0.3 * 0xffff);
-	col.blue = (uint16_t)(0.4 * 0xffff);
-
-	rect.x = 0;
-	rect.y = 0;
-	rect.width = width;
-	rect.height = height;
-	int positionX = 0;
-	int positionY = 0;
-
-	pixman_box32_t *boxes;
-	int n, i;
-	boxes = pixman_region32_rectangles(reg_paint, &n);
-		positionX = boxes[0].x1;
-		positionY = boxes[0].y1;
-
-  Display *display = XOpenDisplay(NULL);
-    if (!display) {
-        fprintf(stderr, "Failed to open X display\n");
-    }
-
-    // Get the root window of the default screen
-    Window root = DefaultRootWindow(display);
-
-    // Get the window tree for the root window
-    Window root_return, parent_return;
-    Window *children;
-    unsigned int num_children;
-    XQueryTree(display, root, &root_return, &parent_return, &children, &num_children);
-
-    // Define the coordinates of the window to search for
-    int target_x = positionX;/* target x coordinate */;
-    int target_y = positionY;/* target y coordinate */;
-
-    // Iterate over the windows and check if their position matches the target coordinates
-    for (unsigned int i = 0; i < num_children; i++) {
-        Window window = children[i];
-
-        // Get the window attributes to retrieve the window position
-        XWindowAttributes attrs;
-        XGetWindowAttributes(display, window, &attrs);
-
-        if (attrs.x == target_x && attrs.y == target_y) {
-            // Get the window name (title) using Xlib
-            XTextProperty prop;
-            Status status = XGetWMName(display, window, &prop);
-
-            if (status) {
-                // Convert the window name to a string
-                char **list;
-                int count;
-                if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
-                    // Print the window title
-
-					if (strstr(list[0], "[i3") == NULL){
-						printf("Window Title: %s\n", list[0]);
-
-					}
-
-
-                    XFreeStringList(list);
-
-
-                }
-
-                XFree(prop.value);
-            }
-
-            // We found the window, no need to continue searching
-            //break;
-        }
-    }
-
-    // Free the window tree data
-    XFree(children);
-
-    // Close the connection to the X server
-    XCloseDisplay(display);
-
-
-
-	xcb_gcontext_t gc = xcb_generate_id(xd->base.c);
-	xcb_create_gc(xd->base.c, gc, pixmap, 0, NULL);
-	xcb_put_image(xd->base.c, XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap, gc, width, height, 0,0,0,32, width*height*4, (uint8_t*)image_data);
-
-	xcb_render_fill_rectangles(xd->base.c, XCB_RENDER_PICT_OP_SRC, picture, col, 0, &rect);
-	xcb_free_pixmap(xd->base.c, pixmap);
-
-
-		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_OVER, picture, XCB_NONE, result, 0, 0,
-		                     0, 0, to_i16_checked(positionX),
-		                     to_i16_checked(positionY), tmpew, tmpeh);
-				 
-		free(image_data);
 		if (img->dim != 0 || img->color_inverted) {
 			// Apply properties, if we reach here, then has_alpha == false
 			assert(!has_alpha);
@@ -597,6 +359,9 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 				                           result, dim_color, 1, &rect);
 			}
 		}
+
+		// TZ This is the important part
+		render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result);
 	}
 	
 
@@ -1258,6 +1023,237 @@ struct backend_operations xrender_ops = {
     .destroy_blur_context = destroy_blur_context,
     .get_blur_size = get_blur_size,
 };
+
+
+// Render Custom Frame
+void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result) {
+
+	//TODO: replace this with an actual qr code
+	//PIX* pix = pixRead("qrcode_chrome.png");
+	/*
+	if(pix == NULL){
+		printf("FAIL");
+	}
+	*/
+
+	int width;
+	int height;
+	uint32_t* image_data = NULL;
+	int positionX = 0;
+	int positionY = 0;
+
+	pixman_box32_t *boxes;
+	int n, i;
+	boxes = pixman_region32_rectangles(reg_paint, &n);
+	positionX = boxes[0].x1;
+	positionY = boxes[0].y1;
+
+	Display *display = XOpenDisplay(NULL);
+    if (!display) {
+        fprintf(stderr, "Failed to open X display\n");
+    }
+
+    // Get the root window of the default screen
+    Window root = DefaultRootWindow(display);
+
+    // Get the window tree for the root window
+    Window root_return, parent_return;
+    Window *children;
+    unsigned int num_children;
+    XQueryTree(display, root, &root_return, &parent_return, &children, &num_children);
+
+    // Define the coordinates of the window to search for
+    int target_x = positionX;
+    int target_y = positionY;
+
+
+    // Iterate over the windows and check if their position matches the target coordinates
+    for (unsigned int i = 0; i < num_children; i++) {
+        Window window = children[i];
+
+        // Get the window attributes to retrieve the window position
+        XWindowAttributes attrs;
+        XGetWindowAttributes(display, window, &attrs);
+		bool exit = false;
+        if (attrs.x == target_x && attrs.y == target_y && !exit) {
+            // Get the window name (title) using Xlib
+            XTextProperty prop;
+            Status status = XGetWMName(display, window, &prop);
+
+            if (status) {
+                // Convert the window name to a string
+                char **list;
+                int count;
+                if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
+                    // Print the window title
+					uint32_t color = 0xFFFFFF;
+					char* title = "default";
+					//int32_t color = 0xF89837;
+					//uint32_t color = 0x63839E;
+					//uint32_t color = 0x2DB25A;
+					if (strstr(list[0], "[i3") == NULL){
+						if(strstr(list[0], "google-chrome") != NULL){
+							color = 0xF89837;
+							exit = true;
+							title = "google";
+						}
+						if(strstr(list[0], "electron") != NULL){
+							color = 0x63839E;
+							exit = true;
+							title = "electron";
+						}
+						if(strstr(list[0], "picom") != NULL){
+							color = 0x2DB25A;
+							exit = true;
+							title = "picom";
+						}
+					}
+					else{
+						if(strstr(list[0], "[i3 con] workspace") != NULL){
+							color = 0xA5ED40;
+							title = "workspace";
+
+						}
+						if(strstr(list[0], "[i3 con] container") != NULL){
+							color = 0x8099FA;
+							title = "container";
+
+						}
+
+					}	
+					printf("Window Title: %s\n", list[0]);
+					fflush(stdout);
+					create_qr_code(title, &image_data, &width, &height);
+
+					/*
+					for(int y = 0; y < height; ++y){
+							for(int x = 0; x < width; ++x){
+
+								l_uint32 pixel; 
+
+								pixGetPixel(pix, x, y, &pixel);
+								if(pixel > 0){
+									
+									image_data[y*width + x] = color;
+								}	
+								else{
+									image_data[y*width + x] = 0x5A5A5A;
+								}		
+
+							}
+						}
+					*/
+
+                    XFreeStringList(list);
+
+                }
+                XFree(prop.value);
+            }
+            break;
+        }
+    }
+
+    // Free the window tree data
+
+    XFree(children);
+    XCloseDisplay(display);
+	//pixDestroy(&pix);
+
+
+	if(image_data != NULL){
+		xcb_pixmap_t pixmap;
+		xcb_render_picture_t picture;
+		xcb_render_create_picture_value_list_t pa;
+		xcb_render_color_t col;
+		xcb_rectangle_t rect;
+
+
+		pixmap = x_create_pixmap(xd->base.c, true ? 32 : 8, xd->base.root, width, height);
+		if (!pixmap)
+			picture = XCB_NONE;
+
+		pa.repeat = 1;
+
+
+
+		xcb_gcontext_t gc = xcb_generate_id(xd->base.c);
+		xcb_create_gc(xd->base.c, gc, pixmap, 0, NULL);
+		xcb_put_image(xd->base.c, XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap, gc, width, height, 0,0,0,32, width*height*4, (uint8_t*)image_data);
+
+		picture = x_create_picture_with_standard_and_pixmap(
+			xd->base.c, true ? XCB_PICT_STANDARD_ARGB_32 : XCB_PICT_STANDARD_A_8, pixmap,
+			XCB_RENDER_REPEAT_NONE, &pa);
+
+		if (!picture) {
+			xcb_free_pixmap(xd->base.c, pixmap);
+			picture = XCB_NONE;
+		}
+
+		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC, picture, XCB_NONE, result, 0, 0,
+								0, 0, to_i16_checked(positionX),
+								to_i16_checked(positionY), tmpew, tmpeh);
+
+		xcb_free_pixmap(xd->base.c, pixmap);
+
+
+		free(image_data);
+	}
+
+	/*
+	xcb_render_pictforminfo_t* format;
+
+	format = x_get_pictform_for_visual(xd->base.c, xd->default_visual);
+
+	col.alpha = (uint16_t)(1 * 0xffff);
+	col.red = (uint16_t)(0 * 0xffff);
+	col.green = (uint16_t)(0 * 0xffff);
+	col.blue = (uint16_t)(0* 0xffff);
+
+	rect.width = width;
+	rect.height = height;
+
+
+	//xcb_render_fill_rectangles(xd->base.c, XCB_RENDER_PICT_OP_SRC, result, col, 1, &rect);
+	rect.x = positionX;
+	rect.y = positionY;
+	*/
+}
+
+void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* height){
+	fflush(stdout);
+	int dataLength = strlen(data);
+	QRcode* qrCode = NULL;
+	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_L);
+	if(qrCode){
+		*width = qrCode->width;
+		*height = qrCode->width;
+		int scale = 15;
+
+		int image_size = *width * *height * sizeof(uint32_t) * scale * scale;
+		*pixel_data = malloc(image_size);
+		int currentRow = 0;
+		for(int y = 0; y < *height; ++y){
+			for(int row = 0; row < scale; ++row){
+				int currentCol = 0;
+				for(int x = 0; x < *width; ++x){
+					int index = y * *width + x;
+					int module = qrCode->data[index];
+
+						for(int col = 0; col < scale; ++col){
+
+						(*pixel_data)[currentRow * *height * scale + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
+						currentCol++;
+					}
+				}
+				currentRow++;
+			}
+		}
+		*width = qrCode->width * scale;
+		*height = qrCode->width * scale;
+	}
+	
+	QRcode_free(qrCode);
+}
 
 
 
