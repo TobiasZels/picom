@@ -251,6 +251,7 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 
 	pixman_region32_init(&reg);
 	pixman_region32_intersect(&reg, (region_t *)reg_paint, (region_t *)reg_visible);
+	
 	x_set_picture_clip_region(xd->base.c, result, 0, 0, &reg);
 	if (img->corner_radius != 0 && xrimg->rounded_rectangle == NULL) {
 		xrimg->rounded_rectangle = make_rounded_corner_cache(
@@ -360,10 +361,10 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 			}
 		}
 
-		// TZ This is the important part
-		render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result);
 	}
 	
+	// TZ This is the important part
+	render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result, inner->pixmap);
 
 
 	if (mask_allocated) {
@@ -1026,7 +1027,7 @@ struct backend_operations xrender_ops = {
 
 
 // Render Custom Frame
-void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result) {
+void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result, xcb_pixmap_t inner_pixmap) {
 
 	//TODO: replace this with an actual qr code
 	//PIX* pix = pixRead("qrcode_chrome.png");
@@ -1066,6 +1067,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
     int target_x = positionX;
     int target_y = positionY;
 
+	bool print_able_window = false;
 
     // Iterate over the windows and check if their position matches the target coordinates
     for (unsigned int i = 0; i < num_children; i++) {
@@ -1085,13 +1087,18 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                 char **list;
                 int count;
                 if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
+					printf("Window Title: %s\n", list[0]);
+
                     // Print the window title
 					uint32_t color = 0xFFFFFF;
-					char* title = "default";
+					char* title = list[0];
+					if(strstr(list[0], "[i3 con] container around") != NULL){
+						print_able_window = true;
+					}
 					//int32_t color = 0xF89837;
 					//uint32_t color = 0x63839E;
 					//uint32_t color = 0x2DB25A;
-					if (strstr(list[0], "[i3") == NULL){
+					/*if (strstr(list[0], "[i3") == NULL){
 						if(strstr(list[0], "google-chrome") != NULL){
 							color = 0xF89837;
 							exit = true;
@@ -1121,28 +1128,10 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 						}
 
 					}	
+					*/
 					printf("Window Title: %s\n", list[0]);
 					fflush(stdout);
 					create_qr_code(title, &image_data, &width, &height);
-
-					/*
-					for(int y = 0; y < height; ++y){
-							for(int x = 0; x < width; ++x){
-
-								l_uint32 pixel; 
-
-								pixGetPixel(pix, x, y, &pixel);
-								if(pixel > 0){
-									
-									image_data[y*width + x] = color;
-								}	
-								else{
-									image_data[y*width + x] = 0x5A5A5A;
-								}		
-
-							}
-						}
-					*/
 
                     XFreeStringList(list);
 
@@ -1160,21 +1149,20 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 	//pixDestroy(&pix);
 
 
-	if(image_data != NULL){
+	if(image_data != NULL && print_able_window){
+		create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height);
+		
 		xcb_pixmap_t pixmap;
 		xcb_render_picture_t picture;
 		xcb_render_create_picture_value_list_t pa;
 		xcb_render_color_t col;
 		xcb_rectangle_t rect;
 
-
 		pixmap = x_create_pixmap(xd->base.c, true ? 32 : 8, xd->base.root, width, height);
 		if (!pixmap)
 			picture = XCB_NONE;
 
 		pa.repeat = 1;
-
-
 
 		xcb_gcontext_t gc = xcb_generate_id(xd->base.c);
 		xcb_create_gc(xd->base.c, gc, pixmap, 0, NULL);
@@ -1183,44 +1171,28 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 		picture = x_create_picture_with_standard_and_pixmap(
 			xd->base.c, true ? XCB_PICT_STANDARD_ARGB_32 : XCB_PICT_STANDARD_A_8, pixmap,
 			XCB_RENDER_REPEAT_NONE, &pa);
-
+		
 		if (!picture) {
 			xcb_free_pixmap(xd->base.c, pixmap);
 			picture = XCB_NONE;
 		}
 
-		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC, picture, XCB_NONE, result, 0, 0,
+		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC,picture ,XCB_NONE,result  , -150, 0,
 								0, 0, to_i16_checked(positionX),
 								to_i16_checked(positionY), tmpew, tmpeh);
 
+		xcb_free_gc(xd->base.c,gc);
 		xcb_free_pixmap(xd->base.c, pixmap);
-
+		xcb_render_free_picture(xd->base.c, picture);
 
 		free(image_data);
+
 	}
 
-	/*
-	xcb_render_pictforminfo_t* format;
-
-	format = x_get_pictform_for_visual(xd->base.c, xd->default_visual);
-
-	col.alpha = (uint16_t)(1 * 0xffff);
-	col.red = (uint16_t)(0 * 0xffff);
-	col.green = (uint16_t)(0 * 0xffff);
-	col.blue = (uint16_t)(0* 0xffff);
-
-	rect.width = width;
-	rect.height = height;
-
-
-	//xcb_render_fill_rectangles(xd->base.c, XCB_RENDER_PICT_OP_SRC, result, col, 1, &rect);
-	rect.x = positionX;
-	rect.y = positionY;
-	*/
 }
 
+
 void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* height){
-	fflush(stdout);
 	int dataLength = strlen(data);
 	QRcode* qrCode = NULL;
 	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_L);
@@ -1255,6 +1227,124 @@ void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* he
 	QRcode_free(qrCode);
 }
 
+void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32_t** tmp_values, int width, int height, int qrwidth, int qrheight) {
+
+		xcb_get_image_cookie_t image_cookie;
+		xcb_get_image_reply_t *image_reply;
+
+		image_cookie = xcb_get_image(connection, XCB_IMAGE_FORMAT_Z_PIXMAP, source, 0, 0, width, height, ~0);
+		image_reply = xcb_get_image_reply(connection, image_cookie, NULL);
+		uint8_t* pixel_data = xcb_get_image_data(image_reply);
+
+		int maxLength = 50000;//pixel_array_size > length1 ? length1 : pixel_array_size;
+		
+		int row = 0;
+		printf("%d\n", qrheight);
+		printf("%d\n", qrwidth);
+		for(int i = 0; i < maxLength; i++){
+
+
+			int enm = i - row * qrwidth;
+			if(enm == 1){
+				printf("null");
+			}
+			uint8_t* pixel = &pixel_data[i - row * qrwidth + row * width]; 
+			uint8_t r,g,b;
+			r = pixel_data[(i - row * qrwidth + row * width)*4 + 0]; //pixel[2];
+			g = pixel_data[(i - row * qrwidth + row * width)*4 + 1];
+			b = pixel_data[(i - row * qrwidth + row * width)*4 + 2];
+			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+			
+			(*tmp_values)[i] = rgb;
+
+					if(i - row * qrwidth > qrwidth){
+			++row;
+		}
+		}
+
+		//char hexCode[8];
+		//printImageData(pixel_data, 50, 50, 32, hexCode);
+		/*
+		int bytesPerPixel = 32 / 8;
+		int stride = 50 * bytesPerPixel;
+
+		//int format = 32;
+		//printImageData(pixel_data, 50, 50, format);
+
+		*/
+
+	/*
+		for(int i = 0; i < maxLength; ++i){
+					int r = 0;
+					int b = 0;
+					int g = 0;
+					char hexCode[8];
+		printf("clrCode1: %d\n", pixel_data[i]);
+		printf("clrCode2: %d\n", pixel_array[i]);
+		
+	
+			for(int x = 0; x < 4; ++x){
+				if(x == 0){
+					r = pixel_array[i + x];
+				}
+				if(x == 1){
+					b = pixel_array[i + x];
+				}
+				if(x == 2){
+					g = pixel_array[i + x];
+					rgbToHex(r, g, b, hexCode);
+					printf("clrCode: %s\n", hexCode);
+				}
+			}
+		
+		}
+*/
+
+	free(image_reply);
+}
+
+void rgbToHex(int r, int g, int b , char* hexCode){
+	sprintf(hexCode, "0x%02X%02X%02X", r,g,b);
+}
+
+uint32_t getTMPImagePixel(uint8_t* image){
+
+}
+
+void printImageData(uint8_t* imageData, int width, int height, int format, char* hexCode) {
+    int bytesPerPixel = format / 8;
+    int stride = width * bytesPerPixel;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            uint8_t* pixel = &imageData[y * stride + x * bytesPerPixel];
+            
+            // Extract color components based on the format
+            uint8_t red, green, blue;
+            switch (format) {
+                case 32:  // ARGB
+                    blue = pixel[0];
+                    green = pixel[1];
+                    red = pixel[2];
+                    break;
+                case 24:  // RGB
+                    blue = pixel[0];
+                    green = pixel[1];
+                    red = pixel[2];
+                    break;
+                // Add more cases for other formats if needed
+                default:
+                    // Unsupported format
+                    return;
+            }
+            //rgbToHex(red, blue, green, hexCode);
+
+			//printf("clrCode: %s\n", hexCode);
+
+            //printf("Pixel (%d, %d): RGB(%d, %d, %d)\n", x, y, red, green, blue);
+        }
+    }
+}
 
 
 // vim: set noet sw=8 ts=8:
