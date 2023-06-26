@@ -1177,7 +1177,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 			picture = XCB_NONE;
 		}
 
-		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC,picture ,XCB_NONE,result  , -150, 0,
+		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC,picture ,XCB_NONE,result  , 0, 0,
 								0, 0, to_i16_checked(positionX),
 								to_i16_checked(positionY), tmpew, tmpeh);
 
@@ -1241,7 +1241,7 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		int row = 0;
 		printf("%d\n", qrheight);
 		printf("%d\n", qrwidth);
-		for(int i = 0; i < maxLength; i++){
+		for(int i = 0; i < qrwidth * qrheight; i++){
 
 
 			int enm = i - row * qrwidth;
@@ -1250,9 +1250,37 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			}
 			uint8_t* pixel = &pixel_data[i - row * qrwidth + row * width]; 
 			uint8_t r,g,b;
-			r = pixel_data[(i - row * qrwidth + row * width)*4 + 0]; //pixel[2];
+			// If the QR code is white do color manipulation
+			// TODO: Next frame
+			int l = 10;
+			r = pixel_data[(i - row * qrwidth + row * width)*4 + 0];
 			g = pixel_data[(i - row * qrwidth + row * width)*4 + 1];
 			b = pixel_data[(i - row * qrwidth + row * width)*4 + 2];
+
+
+			int rl, gl, bl;
+			if(r + l > 255){
+				rl = 255 - r;
+			}
+			if(g + l > 255){
+				gl = 255 - g;
+			}
+			if(b + l > 255){
+				bl = 255 - b;
+			}
+
+			if((*tmp_values)[i] == 0xFFFFFF) {
+				r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] - l*0.2126; //pixel[2];
+				g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] - l *0.7152;
+				b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] - l * 0.0722;
+			}
+			else{
+				r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] + rl*0.2126; //pixel[2];
+				g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] + gl *0.7152;
+				b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] + bl * 0.0722;
+			}
+
+
 			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 			
 			(*tmp_values)[i] = rgb;
