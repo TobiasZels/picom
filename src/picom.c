@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/resource.h>
@@ -54,7 +55,8 @@
 #include "win.h"
 #include "x.h"
 #ifdef CONFIG_DBUS
-#include "dbus.h"
+#include "dbus.h"#include "uthash_extra.h"
+
 #endif
 #include "atom.h"
 #include "event.h"
@@ -64,6 +66,9 @@
 #include "statistics.h"
 #include "uthash_extra.h"
 
+// TZ
+
+
 /// Get session_t pointer from a pointer to a member of session_t
 #define session_ptr(ptr, member)                                                         \
 	({                                                                               \
@@ -72,7 +77,7 @@
 	})
 
 static bool must_use redirect_start(session_t *ps);
-
+TPVM_Window *tpvm_windows = NULL;
 static void unredirect(session_t *ps);
 
 // === Global constants ===
@@ -2820,6 +2825,9 @@ static void session_run(session_t *ps) {
 	ev_run(ps->loop, 0);
 }
 
+
+
+
 /**
  * The function that everybody knows.
  */
@@ -2827,6 +2835,9 @@ int main(int argc, char **argv) {
 	// Set locale so window names with special characters are interpreted
 	// correctly
 	setlocale(LC_ALL, "");
+
+	// Create a hashmap with windowname
+	tpvm_windows = NULL;
 
 	// Initialize logging system for early logging
 	log_init_tls();

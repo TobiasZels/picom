@@ -20,12 +20,10 @@ required_xcb_packages = [
 ]
 
 required_packages = [
-	'x11', 'x11-xcb', 'xcb-renderutil', 'xcb-image', 'xext', 'pixman-1','lept', 'libqrencode'
+	'x11', 'x11-xcb', 'xcb-renderutil', 'xcb-image', 'xext', 'pixman-1', 'libqrencode'
 ]
 
-dependency('lept')
 dependency('libqrencode')
-
 foreach i : required_packages
 	base_deps += [dependency(i, required: true)]
 endforeach

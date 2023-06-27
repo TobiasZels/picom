@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <xcb/xproto.h>
-
 #include <X11/Xutil.h>
 #include "backend/backend.h"
 #include "c2.h"
@@ -102,4 +101,14 @@ static inline void dump_drawable(session_t *ps, xcb_drawable_t drawable) {
 	log_trace("Drawable %#010x: x = %u, y = %u, wid = %u, hei = %d, b = %u, d = %u",
 	          drawable, r->x, r->y, r->width, r->height, r->border_width, r->depth);
 	free(r);
+
 }
+/*
+	TPVM Hashmap
+*/
+typedef struct{
+	char name[50];
+	bool first_frame;
+	UT_hash_handle hh;
+} TPVM_Window;
+extern TPVM_Window* tpvm_windows;

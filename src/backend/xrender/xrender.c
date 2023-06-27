@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <leptonica/allheaders.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
@@ -18,6 +17,7 @@
 #include <xcb/xcb.h>
 #include <qrencode.h>
 
+#include "uthash.h"
 #include "backend/backend.h"
 #include "backend/backend_common.h"
 #include "common.h"
@@ -30,6 +30,8 @@
 #include "utils.h"
 #include "win.h"
 #include "x.h"
+#include "uthash_extra.h"
+
 
 typedef struct _xrender_data {
 	backend_t base;
@@ -259,7 +261,8 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 		    inner->height, (int)img->corner_radius);
 	}
 
-	if (true == false &&(((!img->color_inverted || img->dim != 0) && has_alpha) || img->corner_radius != 0)) {
+
+	if (((!img->color_inverted || img->dim != 0) && has_alpha) || img->corner_radius != 0) {
 		// Apply image properties using a temporary image, because the source
 		// image is transparent. Otherwise the properties can be applied directly
 		// on the target image.
@@ -362,10 +365,10 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 		}
 
 	}
-	
+
+
 	// TZ This is the important part
 	render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result, inner->pixmap);
-
 
 	if (mask_allocated) {
 		xcb_render_free_picture(xd->base.c, mask_pict);
@@ -1025,6 +1028,24 @@ struct backend_operations xrender_ops = {
     .get_blur_size = get_blur_size,
 };
 
+TPVM_Window* add_window(const char* name){
+	TPVM_Window* tmpv_window;
+	tmpv_window = malloc(sizeof(TPVM_Window));
+	
+	strcpy(tmpv_window->name, name);
+	tmpv_window->first_frame = true;
+	HASH_ADD_STR(tpvm_windows, name, tmpv_window);
+	return tmpv_window;
+}
+
+TPVM_Window* find_window_by_name(const char *name){
+	TPVM_Window* tmpv_window;
+
+	HASH_FIND_STR(tpvm_windows, name, tmpv_window);
+
+	return tmpv_window;
+
+}
 
 // Render Custom Frame
 void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result, xcb_pixmap_t inner_pixmap) {
@@ -1068,6 +1089,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
     int target_y = positionY;
 
 	bool print_able_window = false;
+	bool first_frame = false;
 
     // Iterate over the windows and check if their position matches the target coordinates
     for (unsigned int i = 0; i < num_children; i++) {
@@ -1087,12 +1109,27 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                 char **list;
                 int count;
                 if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
-					printf("Window Title: %s\n", list[0]);
+					//printf("Window Title: %s\n", list[0]);
 
                     // Print the window title
 					uint32_t color = 0xFFFFFF;
 					char* title = list[0];
 					if(strstr(list[0], "[i3 con] container around") != NULL){
+
+						const char* name = list[0];
+						printf("Still Works!\n");
+						TPVM_Window* tmpv_window = find_window_by_name(name);
+						if(tmpv_window != NULL){
+							printf("notNull\n");
+							first_frame = tmpv_window->first_frame;
+							tmpv_window->first_frame = !first_frame;
+						}
+						else{
+							printf("isnull\n");
+							first_frame = true;
+							add_window(name);
+						}
+
 						print_able_window = true;
 					}
 					//int32_t color = 0xF89837;
@@ -1150,7 +1187,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 
 
 	if(image_data != NULL && print_able_window){
-		create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height);
+		create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame);
 		
 		xcb_pixmap_t pixmap;
 		xcb_render_picture_t picture;
@@ -1227,7 +1264,7 @@ void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* he
 	QRcode_free(qrCode);
 }
 
-void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32_t** tmp_values, int width, int height, int qrwidth, int qrheight) {
+void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32_t** tmp_values, int width, int height, int qrwidth, int qrheight, bool firstFrame) {
 
 		xcb_get_image_cookie_t image_cookie;
 		xcb_get_image_reply_t *image_reply;
@@ -1243,11 +1280,6 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		printf("%d\n", qrwidth);
 		for(int i = 0; i < qrwidth * qrheight; i++){
 
-
-			int enm = i - row * qrwidth;
-			if(enm == 1){
-				printf("null");
-			}
 			uint8_t* pixel = &pixel_data[i - row * qrwidth + row * width]; 
 			uint8_t r,g,b;
 			// If the QR code is white do color manipulation
@@ -1270,14 +1302,30 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			}
 
 			if((*tmp_values)[i] == 0xFFFFFF) {
+				if(firstFrame){
 				r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] - l*0.2126; //pixel[2];
 				g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] - l *0.7152;
 				b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] - l * 0.0722;
-			}
-			else{
+				}
+				else{
 				r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] + rl*0.2126; //pixel[2];
 				g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] + gl *0.7152;
 				b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] + bl * 0.0722;
+				}
+
+			}
+			else{
+				if(firstFrame){
+					r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] + rl*0.2126; //pixel[2];
+					g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] + gl *0.7152;
+					b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] + bl * 0.0722;
+				}
+				else{
+					r = pixel_data[(i - row * qrwidth + row * width)*4 + 0] - l*0.2126; //pixel[2];
+					g = pixel_data[(i - row * qrwidth + row * width)*4 + 1] - l *0.7152;
+					b = pixel_data[(i - row * qrwidth + row * width)*4 + 2] - l * 0.0722;
+				}
+
 			}
 
 
