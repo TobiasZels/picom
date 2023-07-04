@@ -1052,7 +1052,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 
 	int width;
 	int height;
-	uint32_t* image_data = NULL;
+	uint32_t* image_data;
 	int positionX = 0;
 	int positionY = 0;
 
@@ -1101,6 +1101,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                 char **list;
                 int count;
                 if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
+					
 					//printf("Window Title: %s\n", list[0]);
 
                     // Print the window title
@@ -1113,15 +1114,20 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 						if(tmpv_window != NULL){
 							first_frame = tmpv_window->first_frame;
 							tmpv_window->first_frame = !first_frame;
+							if(tmpv_window->qr_code == NULL){
+								create_qr_code(title, &image_data, &width, &height);
+								*tmpv_window->qr_code = *image_data;
+							}
+							*image_data = *tmpv_window->qr_code;
 						}
 						else{
 							first_frame = true;
 							add_window(name);
+							
 						}
 
 						print_able_window = true;
 					}
-					create_qr_code(title, &image_data, &width, &height);
 
                     XFreeStringList(list);
 
@@ -1192,7 +1198,7 @@ void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* he
 	if(qrCode){
 		*width = qrCode->width;
 		*height = qrCode->width;
-		int scale = 15;
+		int scale = 20;
 
 		int image_size = *width * *height * sizeof(uint32_t) * scale * scale;
 		*pixel_data = malloc(image_size);
@@ -1243,10 +1249,10 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		}
 
 		if(qrwidth > width || height < qrheight) {
+			free(image_reply);
 			return;
 		}
 		int row = 0;
-		
 		for(int i = 0; i < qrwidth * qrheight; i++){
 			uint8_t r,g,b;
 			int position = width*yoffset + height*xoffset + i + row*(width-qrwidth);
@@ -1256,20 +1262,20 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			g = pixel_data[(position)*4 + 1];
 			b = pixel_data[(position)*4 + 2];
 
-			int l = 30;
+			int l = 20;
 			int rl, gl, bl;
 			rl = l * 0.2126;
 			gl = l * 0.2126;
 			bl = l * 0.2126;
 
-			if(r + l > 255){
-				rl = 255 - r*0.2126;
+			if(r + rl > 255){
+				rl = 255-r;
 			}
-			if(g + l > 255){
-				gl = 255 - g*0.7152;
+			if(g + gl > 255){
+				gl = 255-g;
 			}
-			if(b + l > 255){
-				bl = 255 - b* 0.0722;
+			if(b + bl > 255){
+				bl = 255-b;
 			}
 
 			if((*tmp_values)[i] == 0xFFFFFF) {
