@@ -1031,7 +1031,8 @@ struct backend_operations xrender_ops = {
 TPVM_Window* add_window(const char* name){
 	TPVM_Window* tmpv_window;
 	tmpv_window = malloc(sizeof(TPVM_Window));
-	
+	printf("AD");
+	tmpv_window->qr_code = NULL;
 	strcpy(tmpv_window->name, name);
 	tmpv_window->first_frame = true;
 	HASH_ADD_STR(tpvm_windows, name, tmpv_window);
@@ -1111,19 +1112,32 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 
 						const char* name = list[0];
 						TPVM_Window* tmpv_window = find_window_by_name(name);
+
 						if(tmpv_window != NULL){
+
 							first_frame = tmpv_window->first_frame;
 							tmpv_window->first_frame = !first_frame;
+
 							if(tmpv_window->qr_code == NULL){
-								create_qr_code(title, &image_data, &width, &height);
-								*tmpv_window->qr_code = *image_data;
+								int size = create_qr_code(title, &image_data, &width, &height);
+								tmpv_window->qr_code = malloc(size);
+								memcpy(tmpv_window->qr_code, image_data, size);
+								tmpv_window->size = size;
+								tmpv_window->width = width;
+								tmpv_window->height = height;
 							}
-							*image_data = *tmpv_window->qr_code;
+							else{
+								image_data = malloc(tmpv_window->size);
+								width = tmpv_window->width;
+								height = tmpv_window->height;
+								memcpy(image_data, tmpv_window->qr_code, tmpv_window->size);
+							}
+
 						}
 						else{
 							first_frame = true;
 							add_window(name);
-							
+							create_qr_code(title, &image_data, &width, &height);
 						}
 
 						print_able_window = true;
@@ -1191,16 +1205,17 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 }
 
 
-void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* height){
+int create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* height){
 	int dataLength = strlen(data);
 	QRcode* qrCode = NULL;
 	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_H);
+	int image_size = 0;
 	if(qrCode){
 		*width = qrCode->width;
 		*height = qrCode->width;
 		int scale = 20;
 
-		int image_size = *width * *height * sizeof(uint32_t) * scale * scale;
+		image_size = *width * *height * sizeof(uint32_t) * scale * scale;
 		*pixel_data = malloc(image_size);
 		int currentRow = 0;
 		for(int y = 0; y < *height; ++y){
@@ -1224,6 +1239,7 @@ void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* he
 	}
 	
 	QRcode_free(qrCode);
+	return image_size;
 }
 
 void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32_t** tmp_values, int width, int height, int qrwidth, int qrheight, bool firstFrame, uint32_t** image_data_final) {
