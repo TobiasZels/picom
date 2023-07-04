@@ -1188,7 +1188,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 void create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* height){
 	int dataLength = strlen(data);
 	QRcode* qrCode = NULL;
-	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_L);
+	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_H);
 	if(qrCode){
 		*width = qrCode->width;
 		*height = qrCode->width;
@@ -1256,7 +1256,7 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			g = pixel_data[(position)*4 + 1];
 			b = pixel_data[(position)*4 + 2];
 
-			int l = 10;
+			int l = 30;
 			int rl, gl, bl;
 			rl = l * 0.2126;
 			gl = l * 0.2126;
