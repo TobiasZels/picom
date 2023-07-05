@@ -1031,7 +1031,6 @@ struct backend_operations xrender_ops = {
 TPVM_Window* add_window(const char* name){
 	TPVM_Window* tmpv_window;
 	tmpv_window = malloc(sizeof(TPVM_Window));
-	printf("AD");
 	tmpv_window->qr_code = NULL;
 	strcpy(tmpv_window->name, name);
 	tmpv_window->first_frame = true;
@@ -1190,7 +1189,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 			xcb_free_pixmap(xd->base.c, pixmap);
 			picture = XCB_NONE;
 		}
-		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC,picture ,XCB_NONE,result  , 0, 0,
+		xcb_render_composite(xd->base.c, XCB_RENDER_PICT_OP_SRC,picture ,XCB_NONE,result, 0, 0,
 								0, 0, to_i16_checked(positionX),
 								to_i16_checked(positionY), tmpew, tmpeh);
 
@@ -1213,7 +1212,7 @@ int create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* hei
 	if(qrCode){
 		*width = qrCode->width;
 		*height = qrCode->width;
-		int scale = 20;
+		int scale = 5;
 
 		image_size = *width * *height * sizeof(uint32_t) * scale * scale;
 		*pixel_data = malloc(image_size);
@@ -1255,9 +1254,9 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		for(int i = 0; i < width * height; i++){
 			uint8_t r,g,b;
 
-			r = pixel_data[(i)*4 + 0];
+			b = pixel_data[(i)*4 + 0];
 			g = pixel_data[(i)*4 + 1];
-			b = pixel_data[(i)*4 + 2];
+			r = pixel_data[(i)*4 + 2];
 			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 								
 
@@ -1269,14 +1268,16 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			return;
 		}
 		int row = 0;
+		printf("rendering: %d\n", firstFrame);
+
 		for(int i = 0; i < qrwidth * qrheight; i++){
 			uint8_t r,g,b;
 			int position = width*yoffset + height*xoffset + i + row*(width-qrwidth);
 
 
-			r = pixel_data[(position)*4 + 0];
+			r = pixel_data[(position)*4 + 2];
 			g = pixel_data[(position)*4 + 1];
-			b = pixel_data[(position)*4 + 2];
+			b = pixel_data[(position)*4 + 0];
 
 			int l = 20;
 			int rl, gl, bl;
@@ -1296,27 +1297,27 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 
 			if((*tmp_values)[i] == 0xFFFFFF) {
 				if(firstFrame){
-				r = pixel_data[(position)*4 + 0] - l*0.2126;
+				r = pixel_data[(position)*4 + 2] - l*0.2126;
 				g = pixel_data[(position)*4 + 1] - l *0.7152;
-				b = pixel_data[(position)*4 + 2] - l * 0.0722;
+				b = pixel_data[(position)*4 + 0] - l * 0.0722;
 				}
 				else{
-				r = pixel_data[(position)*4 + 0] + rl*0.2126;
+				r = pixel_data[(position)*4 + 2] + rl*0.2126;
 				g = pixel_data[(position)*4 + 1] + gl *0.7152;
-				b = pixel_data[(position)*4 + 2] + bl * 0.0722;
+				b = pixel_data[(position)*4 + 0] + bl * 0.0722;
 				}
 
 			}
 			else{
 				if(firstFrame){
-					r = pixel_data[(position)*4 + 0] + rl*0.2126;
+					r = pixel_data[(position)*4 + 2] + rl*0.2126;
 					g = pixel_data[(position)*4 + 1] + gl *0.7152;
-					b = pixel_data[(position)*4 + 2] + bl * 0.0722;
+					b = pixel_data[(position)*4 + 0] + bl * 0.0722;
 				}
 				else{
-					r = pixel_data[(position)*4 + 0] - l*0.2126; //pixel[2];
+					r = pixel_data[(position)*4 + 2] - l*0.2126; //pixel[2];
 					g = pixel_data[(position)*4 + 1] - l *0.7152;
-					b = pixel_data[(position)*4 + 2] - l * 0.0722;
+					b = pixel_data[(position)*4 + 0] - l * 0.0722;
 				}
 
 			}
