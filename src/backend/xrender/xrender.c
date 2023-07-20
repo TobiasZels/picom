@@ -1212,7 +1212,7 @@ int create_qr_code(const char* data, uint32_t** pixel_data, int* width, int* hei
 	if(qrCode){
 		*width = qrCode->width;
 		*height = qrCode->width;
-		int scale = 5;
+		int scale = 1;
 
 		image_size = *width * *height * sizeof(uint32_t) * scale * scale;
 		*pixel_data = malloc(image_size);
@@ -1251,15 +1251,65 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		uint8_t* pixel_data = xcb_get_image_data(image_reply);
 		int yoffset = 25;
 		int xoffset = 0;
+		int row = 0;
+		int x = 0;
 		for(int i = 0; i < width * height; i++){
 			uint8_t r,g,b;
 
 			b = pixel_data[(i)*4 + 0];
 			g = pixel_data[(i)*4 + 1];
 			r = pixel_data[(i)*4 + 2];
-			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 								
+			int l = 60;
+			int rl, gl, bl;
+			rl = l * 0.2126;
+			gl = l * 0.2126;
+			bl = l * 0.2126;
 
+			if(r + rl > 255){
+				rl = 255-r;
+			}
+			if(g + gl > 255){
+				gl = 255-g;
+			}
+			if(b + bl > 255){
+				bl = 255-b;
+			}
+
+			if((*tmp_values)[(x % qrwidth) + row % qrheight * qrwidth] == 0xFFFFFF) {
+				if(firstFrame){
+				r = pixel_data[(i)*4 + 2] - l*0.2126;
+				g = pixel_data[(i)*4 + 1] - l *0.7152;
+				b = pixel_data[(i)*4 + 0] - l * 0.0722;
+				}
+				else{
+				r = pixel_data[(i)*4 + 2] + rl*0.2126;
+				g = pixel_data[(i)*4 + 1] + gl *0.7152;
+				b = pixel_data[(i)*4 + 0] + bl * 0.0722;
+				}
+
+			}
+			else{
+				if(firstFrame){
+					r = pixel_data[(i)*4 + 2] + rl*0.2126;
+					g = pixel_data[(i)*4 + 1] + gl *0.7152;
+					b = pixel_data[(i)*4 + 0] + bl * 0.0722;
+				}
+				else{
+					r = pixel_data[(i)*4 + 2] - l*0.2126; //pixel[2];
+					g = pixel_data[(i)*4 + 1] - l *0.7152;
+					b = pixel_data[(i)*4 + 0] - l * 0.0722;
+				}
+
+			}
+
+			++x;
+			if(i - row*width > width){
+				++row;
+				x = 0;
+			}
+
+			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 			(*image_data_final)[i] = rgb;
 		}
 
@@ -1267,9 +1317,9 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			free(image_reply);
 			return;
 		}
-		int row = 0;
+		//int row = 0;
 		printf("rendering: %d\n", firstFrame);
-
+		/*
 		for(int i = 0; i < qrwidth * qrheight; i++){
 			uint8_t r,g,b;
 			int position = width*yoffset + height*xoffset + i + row*(width-qrwidth);
@@ -1279,7 +1329,7 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 			g = pixel_data[(position)*4 + 1];
 			b = pixel_data[(position)*4 + 0];
 
-			int l = 20;
+			int l = 30;
 			int rl, gl, bl;
 			rl = l * 0.2126;
 			gl = l * 0.2126;
@@ -1331,6 +1381,7 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 				++row;
 			}	
 		}
+		*/
 
 	free(image_reply);
 }
