@@ -301,8 +301,24 @@ schedule:
 	ev_timer_set(&ps->draw_timer, delay_s, 0);
 	ev_timer_start(ps->loop, &ps->draw_timer);
 }
-
+#define FIFO_PATH "studyfifo"
 void queue_redraw(session_t *ps) {
+	//TZ
+	char buffer[1024];
+
+	int fd = open(FIFO_PATH, O_RDONLY);
+	if(fd == -1){
+		printf("Error opening FIFO");
+	}else{
+		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
+		if(bytesRead > 0){
+			buffer[bytesRead] = '\0';
+			printf("Recieved Hashmap:\n%s\n", buffer);
+		}
+	}
+
+	close(fd);
+
 	if (ps->screen_is_off) {
 		// The screen is off, if there is a draw queued for the next frame (i.e.
 		// ps->redraw_needed == true), it won't be triggered until the screen is
@@ -2892,6 +2908,9 @@ int main(int argc, char **argv) {
 	char *pid_file = NULL;
 
 	do {
+		printf("DataTransfer");
+
+
 		Display *dpy = XOpenDisplay(NULL);
 		if (!dpy) {
 			log_fatal("Can't open display.");
@@ -2935,6 +2954,7 @@ int main(int argc, char **argv) {
 			need_fork = false;
 		}
 		session_run(ps_g);
+		printf("%d", quit);
 		quit = ps_g->quit;
 		if (quit && ps_g->o.write_pid_path) {
 			pid_file = strdup(ps_g->o.write_pid_path);
