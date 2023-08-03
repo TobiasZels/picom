@@ -1107,7 +1107,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                     // Print the window title
 					uint32_t color = 0xFFFFFF;
 					char* title = list[0];
-					if(strstr(list[0], "[i3 con] container around") != NULL){
+					if(strstr(list[0], "") != NULL){
 
 						const char* name = list[0];
 						TPVM_Window* tmpv_window = find_window_by_name(name);

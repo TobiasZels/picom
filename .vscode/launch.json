@@ -8,8 +8,8 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "${workspaceFolder}/debug/src/picom",
-            "args": [],
+            "program": "${workspaceFolder}/build/src/picom",
+            "args": ["--debug", "--no-use-damage"],
             "cwd": "${workspaceFolder}"
         }
     ]

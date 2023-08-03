@@ -298,7 +298,7 @@ void schedule_render(session_t *ps, bool triggered_by_vblank) {
 
 schedule:
 	assert(!ev_is_active(&ps->draw_timer));
-	ev_timer_set(&ps->draw_timer, delay_s, 0);
+	ev_timer_set(&ps->draw_timer, 0, 0);
 	ev_timer_start(ps->loop, &ps->draw_timer);
 }
 #define FIFO_PATH "studyfifo"
@@ -313,7 +313,7 @@ void queue_redraw(session_t *ps) {
 		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
 		if(bytesRead > 0){
 			buffer[bytesRead] = '\0';
-			printf("Recieved Hashmap:\n%s\n", buffer);
+			//printf("Recieved Hashmap:\n%s\n", buffer);
 		}
 	}
 
@@ -1762,6 +1762,11 @@ static void handle_pending_updates(EV_P_ struct session *ps) {
 }
 
 static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
+	// Das sollte eigentlich alle 0 sekunden aufgerufen werden
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	printf("now: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec );
+
 	struct timespec now;
 	int64_t draw_callback_enter_us;
 	clock_gettime(CLOCK_MONOTONIC, &now);
@@ -1798,7 +1803,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 		if (ps->o.benchmark_wid) {
 			auto w = find_managed_win(ps, ps->o.benchmark_wid);
 			if (!w) {
-				log_fatal("Couldn't find specified benchmark window.");
+				printf("Couldn't find specified benchmark window.");
 				exit(1);
 			}
 			add_damage_from_win(ps, w);
@@ -1839,7 +1844,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 	int64_t after_preprocess_us;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 	after_preprocess_us = (now.tv_sec * 1000000LL + now.tv_nsec / 1000);
-	log_trace("paint_preprocess took: %" PRIi64 " us",
+	printf("paint_preprocess took: %" PRIi64 " us",
 	          after_preprocess_us - after_handle_pending_updates_us);
 
 	// If the screen is unredirected, free all_damage to stop painting
@@ -1875,13 +1880,30 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 
 static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	session_t *ps = session_ptr(w, draw_timer);
+	
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	unsigned long current_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 
+
+	printf("current_time %d\n", current_time);
 	draw_callback_impl(EV_A_ ps, revents);
 	ev_timer_stop(EV_A_ w);
 
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	unsigned long render_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 - current_time;
+	printf("render_time %d\n", render_time);
+
+	unsigned long fps = 240;
+	unsigned long frame_time = 1000 / fps;
+	double sleep_time = frame_time > render_time ? frame_time - render_time : 0;
+
 	// Immediately start next frame if we are in benchmark mode.
-	if (ps->o.benchmark) {
-		ev_timer_set(w, 0, 0);
+	// TZ hier o.benchmark worked net
+	if (!ps->o.benchmark) {
+		printf("sleep_time: %d\n", sleep_time/1000);
+		//schedule_render(ps, true);
+		ev_timer_set(w, sleep_time/1000, 0);
 		ev_timer_start(EV_A_ w);
 	}
 }
