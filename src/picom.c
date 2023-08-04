@@ -1884,6 +1884,7 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	unsigned long current_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+	clock_t start_time = clock();
 
 
 	printf("current_time %d\n", current_time);
@@ -1902,6 +1903,9 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	// TZ hier o.benchmark worked net
 	if (!ps->o.benchmark) {
 		printf("sleep_time: %d\n", sleep_time/1000);
+		clock_t end_time = clock();
+		double time_taken = (double)(end_time - start_time) * 1000.0 /CLOCKS_PER_SEC;
+		printf("Time taken total . %.2f ms \n", time_taken);
 		//schedule_render(ps, true);
 		ev_timer_set(w, sleep_time/1000, 0);
 		ev_timer_start(EV_A_ w);

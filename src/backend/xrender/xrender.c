@@ -9,6 +9,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include <fcntl.h>
+#include <simde/x86/sse2.h>
 
 #include <xcb/composite.h>
 #include <xcb/present.h>
@@ -16,6 +18,7 @@
 #include <xcb/sync.h>
 #include <xcb/xcb.h>
 #include <qrencode.h>
+#include <json-c/json.h>
 
 #include "uthash.h"
 #include "backend/backend.h"
@@ -32,6 +35,7 @@
 #include "x.h"
 #include "uthash_extra.h"
 
+#define FIFO_PATH "studyfifo"
 
 typedef struct _xrender_data {
 	backend_t base;
@@ -1067,6 +1071,34 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
         fprintf(stderr, "Failed to open X display\n");
     }
 
+	char buffer[1024];
+	char marker[256] = "qr";
+
+	int fd = open(FIFO_PATH, O_RDONLY);
+	if(fd == -1){
+		printf("Error opening FIFO");
+	}else{
+		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
+		if(bytesRead > 0){
+			buffer[bytesRead] = '\0';
+			//printf("Recieved Hashmap:\n%s\n", buffer);
+			char *key1_start = strstr(buffer, "marker:");
+			if(key1_start){
+				sscanf(key1_start, "marker:%255[^:];", marker);
+			}
+			/*
+			struct json_object *json_obj = json_tokener_parse(buffer);
+			if(json_obj == NULL){
+				printf("Error parsing json");
+			}
+			else{
+				marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
+			}
+			*/
+		}
+	}
+	close(fd);
+	printf(marker);
     // Get the root window of the default screen
     Window root = DefaultRootWindow(display);
 
@@ -1117,6 +1149,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 							first_frame = tmpv_window->first_frame;
 							tmpv_window->first_frame = !first_frame;
 
+							// Create new Marker instead of reading it depending on const marker
 							if(tmpv_window->qr_code == NULL){
 								int size = create_qr_code(title, &image_data, &width, &height);
 								tmpv_window->qr_code = malloc(size);
@@ -1249,140 +1282,78 @@ void create_tmp_frame(xcb_connection_t* connection, xcb_pixmap_t* source, uint32
 		image_cookie = xcb_get_image(connection, XCB_IMAGE_FORMAT_Z_PIXMAP, source, 0, 0, width, height, ~0);
 		image_reply = xcb_get_image_reply(connection, image_cookie, NULL);
 		uint8_t* pixel_data = xcb_get_image_data(image_reply);
-		int yoffset = 25;
-		int xoffset = 0;
+
 		int row = 0;
 		int x = 0;
-		for(int i = 0; i < width * height; i++){
+		int y = 0;
+		int l = 60;
+		int rl, gl, bl, r_l, g_l, b_l;
+		r_l = (int)l * 0.2126;
+		g_l = (int)l * 0.7152;
+		b_l = (int)l * 0.0722;
+		int row_width = 0;
+		int row_temp = 0;
+		int array_length = width*height;
+
+		clock_t start_time = clock();
+		
+		for(int i = 0; i < array_length; i++){
 			uint8_t r,g,b;
+			int pixel_value = (i)*4;
+			rl = r_l;
+			gl = g_l;
+			bl = b_l;
+			b = pixel_data[pixel_value + 0];
+			g = pixel_data[pixel_value + 1];
+			r = pixel_data[pixel_value + 2];
+			y = y <= qrwidth ? y : 0;
 
-			b = pixel_data[(i)*4 + 0];
-			g = pixel_data[(i)*4 + 1];
-			r = pixel_data[(i)*4 + 2];
-								
-			int l = 60;
-			int rl, gl, bl;
-			rl = l * 0.2126;
-			gl = l * 0.2126;
-			bl = l * 0.2126;
+			r = (r * (235) / 255) + 10;
+			g = (g * (235) / 255) + 10;
+		    b = (b * (235) / 255) + 10;
 
-			if(r + rl > 255){
-				rl = 255-r;
-			}
-			if(g + gl > 255){
-				gl = 255-g;
-			}
-			if(b + bl > 255){
-				bl = 255-b;
-			}
+			if(r + rl > 255)rl = 255-r;
+			if(g + gl > 255)gl = 255-g;
+			if(b + bl > 255)bl = 255-b;
 
-			if((*tmp_values)[(x % qrwidth) + row % qrheight * qrwidth] == 0xFFFFFF) {
-				if(firstFrame){
-				r = pixel_data[(i)*4 + 2] - l*0.2126;
-				g = pixel_data[(i)*4 + 1] - l *0.7152;
-				b = pixel_data[(i)*4 + 0] - l * 0.0722;
-				}
-				else{
-				r = pixel_data[(i)*4 + 2] + rl*0.2126;
-				g = pixel_data[(i)*4 + 1] + gl *0.7152;
-				b = pixel_data[(i)*4 + 0] + bl * 0.0722;
-				}
-
+			if(r - rl < 0)rl = 0+r;
+			if(g - gl < 0)gl = 0+g;
+			if(b - bl < 0)bl = 0+b;
+			
+			if((*tmp_values)[y + row_temp] == 0xFFFFFF) {
+				r = firstFrame ? r - rl: r + rl;
+				g = firstFrame ? g - gl: g + gl;
+				b = firstFrame ? b - bl: b + bl;
 			}
 			else{
-				if(firstFrame){
-					r = pixel_data[(i)*4 + 2] + rl*0.2126;
-					g = pixel_data[(i)*4 + 1] + gl *0.7152;
-					b = pixel_data[(i)*4 + 0] + bl * 0.0722;
-				}
-				else{
-					r = pixel_data[(i)*4 + 2] - l*0.2126; //pixel[2];
-					g = pixel_data[(i)*4 + 1] - l *0.7152;
-					b = pixel_data[(i)*4 + 0] - l * 0.0722;
-				}
-
+				r = firstFrame ? r + rl: r - rl;
+				g = firstFrame ? g + gl: g - gl;
+				b = firstFrame ? b + bl: b - bl;	
 			}
-
+			
 			++x;
-			if(i - row*width > width){
+			y++;
+			if(x >= width){
 				++row;
 				x = 0;
+				y = 0;
+				row_width += width;
+				row_temp = row % qrheight * qrwidth;
 			}
 
 			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 			(*image_data_final)[i] = rgb;
 		}
+		
 
 		if(qrwidth > width || height < qrheight) {
 			free(image_reply);
 			return;
 		}
 		//int row = 0;
-		printf("rendering: %d\n", firstFrame);
-		/*
-		for(int i = 0; i < qrwidth * qrheight; i++){
-			uint8_t r,g,b;
-			int position = width*yoffset + height*xoffset + i + row*(width-qrwidth);
-
-
-			r = pixel_data[(position)*4 + 2];
-			g = pixel_data[(position)*4 + 1];
-			b = pixel_data[(position)*4 + 0];
-
-			int l = 30;
-			int rl, gl, bl;
-			rl = l * 0.2126;
-			gl = l * 0.2126;
-			bl = l * 0.2126;
-
-			if(r + rl > 255){
-				rl = 255-r;
-			}
-			if(g + gl > 255){
-				gl = 255-g;
-			}
-			if(b + bl > 255){
-				bl = 255-b;
-			}
-
-			if((*tmp_values)[i] == 0xFFFFFF) {
-				if(firstFrame){
-				r = pixel_data[(position)*4 + 2] - l*0.2126;
-				g = pixel_data[(position)*4 + 1] - l *0.7152;
-				b = pixel_data[(position)*4 + 0] - l * 0.0722;
-				}
-				else{
-				r = pixel_data[(position)*4 + 2] + rl*0.2126;
-				g = pixel_data[(position)*4 + 1] + gl *0.7152;
-				b = pixel_data[(position)*4 + 0] + bl * 0.0722;
-				}
-
-			}
-			else{
-				if(firstFrame){
-					r = pixel_data[(position)*4 + 2] + rl*0.2126;
-					g = pixel_data[(position)*4 + 1] + gl *0.7152;
-					b = pixel_data[(position)*4 + 0] + bl * 0.0722;
-				}
-				else{
-					r = pixel_data[(position)*4 + 2] - l*0.2126; //pixel[2];
-					g = pixel_data[(position)*4 + 1] - l *0.7152;
-					b = pixel_data[(position)*4 + 0] - l * 0.0722;
-				}
-
-			}
-
-
-			uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-			
-			(*image_data_final)[position] = rgb;
-
-			if(i - row * qrwidth > qrwidth){
-				++row;
-			}	
-		}
-		*/
-
+		clock_t end_time = clock();
+		double time_taken = (double)(end_time - start_time) * 1000.0 /CLOCKS_PER_SEC;
+		printf("Time taken. %.2f ms \n", time_taken);
 	free(image_reply);
 }
 

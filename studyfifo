@@ -1,4 +1,4 @@
-marker:mark2
-scenarios:text_w
-framerate:240
+marker:mark3
+scenarios:movie
+framerate:120
 timeout:True
