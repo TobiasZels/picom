@@ -5,12 +5,12 @@ import threading
 import csv
 from datetime import datetime
 import time
+from pynput.keyboard import Key, Controller
 
 FIFO_PATH = "../studyfifo"
 
 exitVariable = False
 lastKey = '0'
-
 AVAILABLE_FRAMERATES = ['60','120', '144', '240']
 AVAILABLE_MAKER = ['Mark1', 'mark2']
 AVAILABLE_SCENARIOS = ['movie', 'text_w', 'text_d', 'image']
@@ -105,12 +105,23 @@ sc_value = 0
 mk_value = -1
 fr_value = 0
 timeout = False
-
+keyboard = Controller()
 def time_out():
     if not nextImage:
         print("Timeout")
         timeout = True
         send_data(marker[mk_value], scenarios[sc_value], framerates[fr_value], True)
+
+def startProgramm(screen):
+    print(screen)
+    #match screen:
+    #    case ""
+
+    # Set fullscreen
+    #os.system("xdotool key super+2")
+
+    
+
 
 while(not exitVariable):
     if(nextImage):
@@ -132,6 +143,9 @@ while(not exitVariable):
         else:
             exitVariable = True
         
+
+        # Start the Program + emulate mod + f for fullscreen
+        startProgramm(scenarios[sc_value])
         send_data(marker[mk_value], scenarios[sc_value], framerates[fr_value], False)
 
 
