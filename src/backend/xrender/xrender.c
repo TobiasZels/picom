@@ -372,7 +372,9 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 
 
 	// TZ This is the important part
-	render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result, inner->pixmap);
+	if(tmpeh > 600){
+		render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result, inner->pixmap);
+	}
 
 	if (mask_allocated) {
 		xcb_render_free_picture(xd->base.c, mask_pict);
@@ -1194,13 +1196,15 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 	//pixDestroy(&pix);
 
 
-	if(image_data != NULL && print_able_window){
-		int image_size = tmpew * tmpeh * sizeof(uint32_t);
-		uint32_t* image_data_final = malloc(image_size);;
+	if(image_data != NULL && print_able_window && tmpeh > 600){
 
-
+		//int image_size = tmpew * tmpeh * sizeof(uint32_t);
+		//uint32_t* image_data_final = malloc(image_size);
+		uint32_t* image_data_final;
+		printf("%d x %d \n", tmpew, tmpeh);
 		//create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame, &image_data_final);
 		image_data_final = first_frame ? QR_FRAME_DATA : QR_FRAME_DATA_INVERSE;
+		
 		xcb_pixmap_t pixmap;
 		xcb_render_picture_t picture;
 		xcb_render_create_picture_value_list_t pa;
@@ -1215,7 +1219,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 
 		xcb_gcontext_t gc = xcb_generate_id(xd->base.c);
 		xcb_create_gc(xd->base.c, gc, pixmap, 0, NULL);
-		xcb_put_image(xd->base.c, XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap, gc, tmpew, tmpeh, 0,0,0,32, tmpew*tmpeh*4, (uint8_t*)image_data_final);
+		xcb_put_image(xd->base.c, XCB_IMAGE_FORMAT_Z_PIXMAP, pixmap, gc, tmpew, tmpeh, 0,0,0,32, tmpew*tmpeh*4, (uint32_t*)image_data_final);
 
 		picture = x_create_picture_with_standard_and_pixmap(
 			xd->base.c, true ? XCB_PICT_STANDARD_ARGB_32 : XCB_PICT_STANDARD_A_8, pixmap,
@@ -1233,8 +1237,8 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 		xcb_free_pixmap(xd->base.c, pixmap);
 		xcb_render_free_picture(xd->base.c, picture);
 
-		free(image_data);
-		free(image_data_final);
+		//free(image_data);
+		//free(image_data_final);
 	}
 
 }

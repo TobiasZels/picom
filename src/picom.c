@@ -1897,7 +1897,7 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	unsigned long render_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 - current_time;
 	printf("render_time %d\n", render_time);
 
-	unsigned long fps = 240;
+	unsigned long fps = 60;
 	unsigned long frame_time = 1000 / fps;
 	double sleep_time = frame_time > render_time ? frame_time - render_time : 0;
 
@@ -2893,6 +2893,9 @@ int main(int argc, char **argv) {
 			printf("FAIL");
 		}
 
+	pix = pixConvertTo32(pix);
+
+	pix = pixScaleToSize(pix, 1280, 800);
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
 
@@ -2903,23 +2906,35 @@ int main(int argc, char **argv) {
 
 			l_uint32 pixel; 
 
-			pixGetPixel(pix, x, y, &pixel);			
-			image_data[y*width + x] = pixel;
+			pixGetPixel(pix, x, y, &pixel);		
+
+			l_uint8 r = GET_DATA_BYTE(&pixel, COLOR_RED);
+            l_uint8 g = GET_DATA_BYTE(&pixel, COLOR_GREEN);
+            l_uint8 b = GET_DATA_BYTE(&pixel, COLOR_BLUE);
+            
+            //printf("Pixel at (%d, %d): R=%d, G=%d, B=%d\n", x, y, r, g, b);
+
+			QR_FRAME_DATA[y*width + x] = (r << 16)|(g <<8)|b;
 
 		}
 	}
-
+	printf("%d x %d", width, height);
 	pixDestroy(&pix);
 
 
-	PIX* pix = pixRead("src/study_images/qr_2.png");
+	PIX* pix2 = pixRead("src/study_images/qr_2.png");
 
-	if(pix == NULL){
+	if(pix2 == NULL){
 			printf("FAIL");
 		}
 
-	width = pixGetWidth(pix);
-	height = pixGetHeight(pix);
+
+	pix2 = pixConvertTo32(pix2);
+
+	pix2 = pixScaleToSize(pix2, 1280, 800);
+
+	width = pixGetWidth(pix2);
+	height = pixGetHeight(pix2);
 
 	QR_FRAME_DATA_INVERSE = malloc(width * height * sizeof(uint32_t));
 
@@ -2928,13 +2943,20 @@ int main(int argc, char **argv) {
 
 			l_uint32 pixel; 
 
-			pixGetPixel(pix, x, y, &pixel);			
-			image_data[y*width + x] = pixel;
+			pixGetPixel(pix2, x, y, &pixel);
+
+			l_uint8 r = GET_DATA_BYTE(&pixel, COLOR_RED);
+            l_uint8 g = GET_DATA_BYTE(&pixel, COLOR_GREEN);
+            l_uint8 b = GET_DATA_BYTE(&pixel, COLOR_BLUE);
+            
+            //printf("Pixel at (%d, %d): R=%d, G=%d, B=%d\n", x, y, r, g, b);
+
+			QR_FRAME_DATA_INVERSE[y*width + x] = (r << 16)|(g <<8)|b;
 
 		}
 	}
-
-	pixDestroy(&pix);
+	pixWrite("test.png", pix2, IFF_PNG);
+	pixDestroy(&pix2);
 
 
 
