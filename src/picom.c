@@ -8,6 +8,8 @@
  * See LICENSE-mit for more information.
  *
  */
+#include <stdint.h>
+#include <leptonica/allheaders.h>
 
 #include <X11/Xlib-xcb.h>
 #include <X11/Xlib.h>
@@ -31,7 +33,7 @@
 #include <xcb/render.h>
 #include <xcb/sync.h>
 #include <xcb/xfixes.h>
-
+#include <png.h>
 #include <ev.h>
 #include <test.h>
 
@@ -2869,6 +2871,9 @@ static void session_run(session_t *ps) {
 
 
 
+uint32_t* QR_FRAME_DATA = NULL;
+uint32_t* QR_FRAME_DATA_INVERSE = NULL;
+
 
 /**
  * The function that everybody knows.
@@ -2880,6 +2885,62 @@ int main(int argc, char **argv) {
 
 	// Create a hashmap with windowname
 	tpvm_windows = NULL;
+
+	// TZ: init pictures
+	PIX* pix = pixRead("src/study_images/qr_1.png");
+
+	if(pix == NULL){
+			printf("FAIL");
+		}
+
+	int width = pixGetWidth(pix);
+	int height = pixGetHeight(pix);
+
+	QR_FRAME_DATA = malloc(width * height * sizeof(uint32_t));
+
+	for(int y = 0; y < height; ++y){
+		for(int x = 0; x < width; ++x){
+
+			l_uint32 pixel; 
+
+			pixGetPixel(pix, x, y, &pixel);			
+			image_data[y*width + x] = pixel;
+
+		}
+	}
+
+	pixDestroy(&pix);
+
+
+	PIX* pix = pixRead("src/study_images/qr_2.png");
+
+	if(pix == NULL){
+			printf("FAIL");
+		}
+
+	width = pixGetWidth(pix);
+	height = pixGetHeight(pix);
+
+	QR_FRAME_DATA_INVERSE = malloc(width * height * sizeof(uint32_t));
+
+	for(int y = 0; y < height; ++y){
+		for(int x = 0; x < width; ++x){
+
+			l_uint32 pixel; 
+
+			pixGetPixel(pix, x, y, &pixel);			
+			image_data[y*width + x] = pixel;
+
+		}
+	}
+
+	pixDestroy(&pix);
+
+
+
+
+
+
 
 	// Initialize logging system for early logging
 	log_init_tls();

@@ -1051,6 +1051,9 @@ TPVM_Window* find_window_by_name(const char *name){
 
 }
 
+extern uint32_t* QR_FRAME_DATA;
+extern uint32_t* QR_FRAME_DATA_INVERSE;
+
 // Render Custom Frame
 void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result, xcb_pixmap_t inner_pixmap) {
 
@@ -1196,8 +1199,8 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 		uint32_t* image_data_final = malloc(image_size);;
 
 
-		create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame, &image_data_final);
-		
+		//create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame, &image_data_final);
+		image_data_final = first_frame ? QR_FRAME_DATA : QR_FRAME_DATA_INVERSE;
 		xcb_pixmap_t pixmap;
 		xcb_render_picture_t picture;
 		xcb_render_create_picture_value_list_t pa;
