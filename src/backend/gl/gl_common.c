@@ -342,6 +342,7 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 
 	return result_texture;
 }
+extern uint32_t* TIMEOUT;
 
 /**
  * Render a region with texture data.
@@ -434,11 +435,30 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	// log_trace("Draw: %d, %d, %d, %d -> %d, %d (%d, %d) z %d\n",
 	//          x, y, width, height, dx, dy, ptex->width, ptex->height, z);
 
+
+	GLuint customTexture;
+	glGenTextures(1, &customTexture);
+	
 	// Bind texture
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, brightness);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, inner->texture);
+	//glBindTexture(GL_TEXTURE_2D, inner->texture);
+	glBindTexture(GL_TEXTURE_2D, customTexture);
+
+	// Set texture parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	// Upload pixel data
+	int width = 1280/* width of your image */;
+	int height = 800/* height of your image */;
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, TIMEOUT);
+
+
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);

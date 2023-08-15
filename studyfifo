@@ -1,4 +1,4 @@
-marker:mark3
-scenarios:movie
+marker:point
+scenarios:image
 framerate:120
 timeout:True

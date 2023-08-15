@@ -15,6 +15,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/sync.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -1890,9 +1891,9 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 
 
 	printf("current_time %d\n", current_time);
+	
 	draw_callback_impl(EV_A_ ps, revents);
 	ev_timer_stop(EV_A_ w);
-
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	unsigned long render_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 - current_time;
 	printf("render_time %d\n", render_time);
@@ -1908,7 +1909,8 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 		clock_t end_time = clock();
 		double time_taken = (double)(end_time - start_time) * 1000.0 /CLOCKS_PER_SEC;
 		printf("Time taken total . %.2f ms \n", time_taken);
-		//schedule_render(ps, true);
+		//shedule_render(ps, false);
+		
 		ev_timer_set(w, sleep_time/1000, 0);
 		ev_timer_start(EV_A_ w);
 	}
@@ -2952,9 +2954,9 @@ int main(int argc, char **argv) {
 	load_image("src/study_images/text_w/text_w_qr.png", &TEXT_W_QR_FRAME_DATA);
 	load_image("src/study_images/text_w/text_w_qr_inv.png", &TEXT_W_QR_FRAME_DATA_INVERSE);
 	load_image("src/study_images/text_w/text_w_arc.png", &TEXT_W_AR_FRAME_DATA);
-	load_image("src/study_images/text_w/text_w_arc_inv.png", &TEXT_W_AR_FRAME_DATA);
+	load_image("src/study_images/text_w/text_w_arc_inv.png", &TEXT_W_AR_FRAME_DATA_INVERSE);
 	load_image("src/study_images/text_w/text_w_dot.png", &TEXT_W_DOT_FRAME_DATA);
-	load_image("src/study_images/text_w/text_w_dot_inv.png", &TEXT_W_DOT_FRAME_DATA);
+	load_image("src/study_images/text_w/text_w_dot_inv.png", &TEXT_W_DOT_FRAME_DATA_INVERSE);
 	
 	load_image("src/study_images/text_d/text_d_qr.png", &TEXT_D_QR_FRAME_DATA);
 	load_image("src/study_images/text_d/text_d_qr_inv.png", &TEXT_D_QR_FRAME_DATA_INVERSE);

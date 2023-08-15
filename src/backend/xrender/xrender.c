@@ -372,7 +372,7 @@ compose_impl(struct _xrender_data *xd, struct xrender_image *xrimg, coord_t dst,
 
 
 	// TZ This is the important part
-	if(tmpeh > 600){
+	if(tmpeh > 700){
 		render_tmpv_frame(reg_paint, xd, tmpew, tmpeh, result, inner->pixmap);
 	}
 
@@ -1053,28 +1053,28 @@ TPVM_Window* find_window_by_name(const char *name){
 
 }
 
-extern uint32_t* IMG_QR_FRAME_DATA = NULL;
-extern uint32_t* IMG_QR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* IMG_AR_FRAME_DATA = NULL;
-extern uint32_t* IMG_AR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* IMG_DOT_FRAME_DATA = NULL;
-extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* IMG_QR_FRAME_DATA;
+extern uint32_t* IMG_QR_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_AR_FRAME_DATA;
+extern uint32_t* IMG_AR_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_DOT_FRAME_DATA;
+extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE;
 
-extern uint32_t* TEXT_W_QR_FRAME_DATA = NULL;
-extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* TEXT_W_AR_FRAME_DATA = NULL;
-extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* TEXT_W_DOT_FRAME_DATA = NULL;
-extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_W_QR_FRAME_DATA;
+extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_W_AR_FRAME_DATA;
+extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE;
 
-extern uint32_t* TEXT_D_QR_FRAME_DATA = NULL;
-extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* TEXT_D_AR_FRAME_DATA = NULL;
-extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE = NULL;
-extern uint32_t* TEXT_D_DOT_FRAME_DATA = NULL;
-extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_D_QR_FRAME_DATA;
+extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_D_AR_FRAME_DATA;
+extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE;
 
-extern uint32_t* TIMEOUT = NULL;
+extern uint32_t* TIMEOUT;
 
 // Render Custom Frame
 void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result, xcb_pixmap_t inner_pixmap) {
@@ -1114,16 +1114,16 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 			char *key2_start = strstr(buffer, "timeout:");
 
 			if(key1_start){
-				sscanf(key1_start, "marker:%255[^:];", marker);
+				sscanf(key1_start, "marker:%255[^\n];", marker);
 			}
 
 			if(key2_start){
-				sscanf(key2_start, "timeout:%255[^:];", timeout);
+				sscanf(key2_start, "timeout:%255[^\n];", timeout);
 
 			}
 
 			if(key3_start){
-				sscanf(key3_start, "scenarios:%255[^:];", scenarios);
+				sscanf(key3_start, "scenarios:%255[^\n];", scenarios);
 
 			}
 			/*
@@ -1174,7 +1174,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                 int count;
                 if (XmbTextPropertyToTextList(display, &prop, &list, &count) == Success && count > 0) {
 					
-					//printf("Window Title: %s\n", list[0]);
+					printf("Window Title: %s\n", list[0]);
 
                     // Print the window title
 					uint32_t color = 0xFFFFFF;
@@ -1238,37 +1238,38 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 		uint32_t* image_data_final;
 		printf("%d x %d \n", tmpew, tmpeh);
 		//create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame, &image_data_final);
+		printf("Das ist ein bug: %s, %s, %s \n", scenarios, marker, timeout);
 		if(strcmp(timeout, "True")){
-			if(strcmp(scenarios, "text_w")){
-				if(strcmp(marker, "qr")){
+			if(strcmp(scenarios, "text_w") == 0){
+				if(strcmp(marker, "qr")== 0){
 					image_data_final = first_frame ? TEXT_W_QR_FRAME_DATA : TEXT_W_QR_FRAME_DATA_INVERSE;
 				}	
-				else if(strcmp(marker, "aruco")){
+				else if(strcmp(marker, "aruco")== 0){
 					image_data_final = first_frame ? TEXT_W_AR_FRAME_DATA : TEXT_W_AR_FRAME_DATA_INVERSE;
 				}
-				else if(strcmp(marker, "point")){
+				else if(strcmp(marker, "point")== 0){
 					image_data_final = first_frame ? TEXT_W_DOT_FRAME_DATA : TEXT_W_DOT_FRAME_DATA_INVERSE;
 				}				
 			}
-			else if(strcmp(scenarios, "text_d")){
-				if(strcmp(marker, "qr")){
+			else if(strcmp(scenarios, "text_d")== 0){
+				if(strcmp(marker, "qr")== 0){
 					image_data_final = first_frame ? TEXT_D_QR_FRAME_DATA : TEXT_D_QR_FRAME_DATA_INVERSE;
 				}	
-				else if(strcmp(marker, "aruco")){
+				else if(strcmp(marker, "aruco")== 0){
 					image_data_final = first_frame ? TEXT_D_AR_FRAME_DATA : TEXT_D_AR_FRAME_DATA_INVERSE;
 				}
-				else if(strcmp(marker, "point")){
+				else if(strcmp(marker, "point")== 0){
 					image_data_final = first_frame ? TEXT_D_DOT_FRAME_DATA : TEXT_D_DOT_FRAME_DATA_INVERSE;
 				}		
 			}
-			else if(strcmp(scenarios, "image")){
-				if(strcmp(marker, "qr")){
+			else if(strcmp(scenarios, "image")== 0){
+				if(strcmp(marker, "qr")== 0){
 					image_data_final = first_frame ? IMG_QR_FRAME_DATA : IMG_QR_FRAME_DATA_INVERSE;
 				}	
-				else if(strcmp(marker, "aruco")){
+				else if(strcmp(marker, "aruco")== 0){
 					image_data_final = first_frame ? IMG_AR_FRAME_DATA : IMG_AR_FRAME_DATA_INVERSE;
 				}
-				else if(strcmp(marker, "point")){
+				else if(strcmp(marker, "point")== 0){
 					image_data_final = first_frame ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
 				}		
 			}

@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug",
             "program": "${workspaceFolder}/build/src/picom",
-            "args": ["--debug", "--no-use-damage"],
+            "args": ["--debug", "--no-use-damage", "--opengl"],
             "cwd": "${workspaceFolder}"
         }
     ]

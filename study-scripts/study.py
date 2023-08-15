@@ -21,7 +21,7 @@ SCENARIO_TIMER = 5
 framerates = []
 marker = []
 scenarios = []
-nextImage = True
+nextImage = False
 
 def shuffle_study():
     temp_array = AVAILABLE_FRAMERATES.copy()
@@ -76,7 +76,8 @@ def log(rating):
 def key_press_event(event):
     global lastKey
     global nextImage
-    if not exitVariable:
+    global timeout
+    if timeout and not exitVariable:
         match event.name:
             case "1":
                 log(1)
@@ -104,7 +105,7 @@ shuffle_study()
 sc_value = 0
 mk_value = -1
 fr_value = 0
-timeout = False
+timeout = True
 keyboard = Controller()
 def time_out():
     if not nextImage:
