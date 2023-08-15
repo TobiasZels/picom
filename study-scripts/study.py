@@ -12,7 +12,7 @@ FIFO_PATH = "../studyfifo"
 exitVariable = False
 lastKey = '0'
 AVAILABLE_FRAMERATES = ['60','120', '144', '240']
-AVAILABLE_MAKER = ['Mark1', 'mark2']
+AVAILABLE_MAKER = ['qr', 'aruco', 'point']
 AVAILABLE_SCENARIOS = ['movie', 'text_w', 'text_d', 'image']
 
 SCENARIO_TIMER = 5

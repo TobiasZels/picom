@@ -2874,20 +2874,8 @@ static void session_run(session_t *ps) {
 uint32_t* QR_FRAME_DATA = NULL;
 uint32_t* QR_FRAME_DATA_INVERSE = NULL;
 
-
-/**
- * The function that everybody knows.
- */
-int main(int argc, char **argv) {
-	// Set locale so window names with special characters are interpreted
-	// correctly
-	setlocale(LC_ALL, "");
-
-	// Create a hashmap with windowname
-	tpvm_windows = NULL;
-
-	// TZ: init pictures
-	PIX* pix = pixRead("src/study_images/qr_1.png");
+static void load_image(char* path, uint32_t** frame_data){
+	PIX* pix = pixRead(path);
 
 	if(pix == NULL){
 			printf("FAIL");
@@ -2899,7 +2887,7 @@ int main(int argc, char **argv) {
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
 
-	QR_FRAME_DATA = malloc(width * height * sizeof(uint32_t));
+	*frame_data = malloc(width * height * sizeof(uint32_t));
 
 	for(int y = 0; y < height; ++y){
 		for(int x = 0; x < width; ++x){
@@ -2914,50 +2902,28 @@ int main(int argc, char **argv) {
             
             //printf("Pixel at (%d, %d): R=%d, G=%d, B=%d\n", x, y, r, g, b);
 
-			QR_FRAME_DATA[y*width + x] = (r << 16)|(g <<8)|b;
+			(*frame_data)[y*width + x] = (r << 16)|(g <<8)|b;
 
 		}
 	}
 	printf("%d x %d", width, height);
 	pixDestroy(&pix);
+}
 
 
-	PIX* pix2 = pixRead("src/study_images/qr_2.png");
+/**
+ * The function that everybody knows.
+ */
+int main(int argc, char **argv) {
+	// Set locale so window names with special characters are interpreted
+	// correctly
+	setlocale(LC_ALL, "");
 
-	if(pix2 == NULL){
-			printf("FAIL");
-		}
+	// Create a hashmap with windowname
+	tpvm_windows = NULL;
 
-
-	pix2 = pixConvertTo32(pix2);
-
-	pix2 = pixScaleToSize(pix2, 1280, 800);
-
-	width = pixGetWidth(pix2);
-	height = pixGetHeight(pix2);
-
-	QR_FRAME_DATA_INVERSE = malloc(width * height * sizeof(uint32_t));
-
-	for(int y = 0; y < height; ++y){
-		for(int x = 0; x < width; ++x){
-
-			l_uint32 pixel; 
-
-			pixGetPixel(pix2, x, y, &pixel);
-
-			l_uint8 r = GET_DATA_BYTE(&pixel, COLOR_RED);
-            l_uint8 g = GET_DATA_BYTE(&pixel, COLOR_GREEN);
-            l_uint8 b = GET_DATA_BYTE(&pixel, COLOR_BLUE);
-            
-            //printf("Pixel at (%d, %d): R=%d, G=%d, B=%d\n", x, y, r, g, b);
-
-			QR_FRAME_DATA_INVERSE[y*width + x] = (r << 16)|(g <<8)|b;
-
-		}
-	}
-	pixWrite("test.png", pix2, IFF_PNG);
-	pixDestroy(&pix2);
-
+	load_image("src/study_images/qr_1.png", &QR_FRAME_DATA);
+	load_image("src/study_images/qr_2.png", &QR_FRAME_DATA_INVERSE);
 
 
 
