@@ -10,7 +10,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <fcntl.h>
-#include <simde/x86/sse2.h>
 
 #include <xcb/composite.h>
 #include <xcb/present.h>
