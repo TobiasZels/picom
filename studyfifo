@@ -1,4 +1,4 @@
-marker:qr
-scenarios:text_d
+marker:aruco
+scenarios:image
 framerate:144
 timeout:True
