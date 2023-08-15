@@ -1,4 +1,4 @@
 marker:aruco
-scenarios:image
-framerate:144
-timeout:True
+scenarios:text_d
+framerate:60
+timeout:False

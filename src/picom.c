@@ -1898,7 +1898,7 @@ static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	unsigned long render_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 - current_time;
 	printf("render_time %d\n", render_time);
 
-	unsigned long fps = 60;
+	unsigned long fps = 144;
 	unsigned long frame_time = 1000 / fps;
 	double sleep_time = frame_time > render_time ? frame_time - render_time : 0;
 
