@@ -467,9 +467,6 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 		IMG_FLIP = !IMG_FLIP;
 	}
 	
-	
-
-
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -497,6 +494,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glDeleteVertexArrays(1, &vao);
 
 	// Cleanup
+
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE1);
@@ -511,6 +509,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glDeleteBuffers(2, bo);
 
 	glUseProgram(0);
+	glDeleteTextures(1, &customTexture);
 
 	gl_check_err();
 

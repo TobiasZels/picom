@@ -1,4 +1,4 @@
-marker:aruco
+marker:point
 scenarios:text_d
 framerate:60
-timeout:False
+timeout:True
