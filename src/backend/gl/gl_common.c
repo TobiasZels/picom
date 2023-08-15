@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
+#include <fcntl.h>
 
 #include "backend/backend.h"
 #include "common.h"
@@ -21,7 +22,7 @@
 
 #include "backend/backend_common.h"
 #include "backend/gl/gl_common.h"
-
+#define FIFO_PATH "studyfifo"
 void gl_prepare(backend_t *base, const region_t *reg attr_unused) {
 	auto gd = (struct gl_data *)base;
 	glBeginQuery(GL_TIME_ELAPSED, gd->frame_timing[gd->current_frame_timing]);
@@ -342,10 +343,30 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 
 	return result_texture;
 }
-extern uint32_t* TIMEOUT;
 extern bool IMG_FLIP;
+extern uint32_t* IMG_QR_FRAME_DATA;
+extern uint32_t* IMG_QR_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_AR_FRAME_DATA;
+extern uint32_t* IMG_AR_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_DOT_FRAME_DATA;
+extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE;
+
+extern uint32_t* TEXT_W_QR_FRAME_DATA;
+extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_W_AR_FRAME_DATA;
+extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE;
+
+extern uint32_t* TEXT_D_QR_FRAME_DATA;
+extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE;
 extern uint32_t* TEXT_D_AR_FRAME_DATA;
 extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE;
+
+extern uint32_t* TIMEOUT;
+extern int FRAME_RATE;
 /**
  * Render a region with texture data.
  *
@@ -458,14 +479,96 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	int width = 1920/* width of your image */;
 	int height = 1080/* height of your image */;
 
-	if(IMG_FLIP){
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, TEXT_D_AR_FRAME_DATA);
-		IMG_FLIP = !IMG_FLIP;
+	char buffer[1024];
+	char marker[256] = "qr";
+	char scenarios[256] = "text_w";
+	char timeout[256] = "False";
+	char framerate[256] = "60";
+
+	uint32_t* image_data_final;
+
+	int fd = open(FIFO_PATH, O_RDONLY);
+	if(fd == -1){
+		printf("Error opening FIFO");
+	}else{
+		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
+		if(bytesRead > 0){
+			buffer[bytesRead] = '\0';
+			//printf("Recieved Hashmap:\n%s\n", buffer);
+			char *key1_start = strstr(buffer, "marker:");
+			char *key3_start = strstr(buffer, "scenarios:");
+			char *key2_start = strstr(buffer, "timeout:");
+			char *key4_start = strstr(buffer, "framerate:");
+
+			if(key1_start){
+				sscanf(key1_start, "marker:%255[^\n];", marker);
+			}
+
+			if(key2_start){
+				sscanf(key2_start, "timeout:%255[^\n];", timeout);
+
+			}
+
+			if(key3_start){
+				sscanf(key3_start, "scenarios:%255[^\n];", scenarios);
+
+			}
+			if(key4_start){
+				sscanf(key4_start, "framerate:%255[^\n];", framerate);
+				FRAME_RATE = atoi(framerate);
+			}
+			/*
+			struct json_object *json_obj = json_tokener_parse(buffer);
+			if(json_obj == NULL){
+				printf("Error parsing json");
+			}
+			else{
+				marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
+			}
+			*/
+		}
 	}
-	else{
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,TEXT_D_AR_FRAME_DATA_INVERSE);
-		IMG_FLIP = !IMG_FLIP;
-	}
+	close(fd);
+if(strcmp(timeout, "True")){
+			if(strcmp(scenarios, "text_w") == 0){
+				if(strcmp(marker, "qr")== 0){
+					image_data_final = IMG_FLIP ? TEXT_W_QR_FRAME_DATA : TEXT_W_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")== 0){
+					image_data_final = IMG_FLIP ? TEXT_W_AR_FRAME_DATA : TEXT_W_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")== 0){
+					image_data_final = IMG_FLIP ? TEXT_W_DOT_FRAME_DATA : TEXT_W_DOT_FRAME_DATA_INVERSE;
+				}				
+			}
+			else if(strcmp(scenarios, "text_d")== 0){
+				if(strcmp(marker, "qr")== 0){
+					image_data_final = IMG_FLIP ? TEXT_D_QR_FRAME_DATA : TEXT_D_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")== 0){
+					image_data_final = IMG_FLIP ? TEXT_D_AR_FRAME_DATA : TEXT_D_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")== 0){
+					image_data_final = IMG_FLIP ? TEXT_D_DOT_FRAME_DATA : TEXT_D_DOT_FRAME_DATA_INVERSE;
+				}		
+			}
+			else if(strcmp(scenarios, "image")== 0){
+				if(strcmp(marker, "qr")== 0){
+					image_data_final = IMG_FLIP ? IMG_QR_FRAME_DATA : IMG_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")== 0){
+					image_data_final = IMG_FLIP ? IMG_AR_FRAME_DATA : IMG_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")== 0){
+					image_data_final = IMG_FLIP ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
+				}		
+			}
+		}
+		else{
+			image_data_final = TIMEOUT;
+		}
+	IMG_FLIP = !IMG_FLIP;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data_final);
 	
 
 	GLuint vao;

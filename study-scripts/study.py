@@ -6,9 +6,13 @@ import csv
 from datetime import datetime
 import time
 from pynput.keyboard import Key, Controller
+import argparse
 
 FIFO_PATH = "../studyfifo"
-
+argParser = argparse.ArgumentParser()
+argParser.add_argument("-id", "--participantID", help="participant id")
+args = argParser.parse_args()
+id = args.participantID
 exitVariable = False
 lastKey = '0'
 AVAILABLE_FRAMERATES = ['60','120', '144', '240']
@@ -66,7 +70,7 @@ def log(rating):
     time_stamp = time.time()
     time_stamp = datetime.fromtimestamp(time_stamp)
     fieldnames = ['id', 'timestamp', 'task', 'framerate', 'marker', 'rating']
-    row = {'id': 0, 'timestamp': time_stamp, 'task': scenarios[sc_value], 'framerate': framerates[fr_value],'marker': marker[mk_value], 'rating': rating}
+    row = {'id': id, 'timestamp': time_stamp, 'task': scenarios[sc_value], 'framerate': framerates[fr_value],'marker': marker[mk_value], 'rating': rating}
     with open('logfiles/log.csv', 'a', newline='') as f:
         dictwriter_object = csv.DictWriter(f, fieldnames=fieldnames)
         dictwriter_object.writerow(row)
@@ -82,21 +86,26 @@ def key_press_event(event):
             case "1":
                 log(1)
                 nextImage = True
+                timeout = False
             case "2":
                 log(2)
                 nextImage = True
-            
+                timeout = False
+
             case "3":
                 log(3)
                 nextImage = True
+                timeout = False
             
             case "4":
                 log(4)
                 nextImage = True
+                timeout = False
 
             case "5":
                 log(5)
                 nextImage = True
+                timeout = False
 
     print(event.name)
 
@@ -108,6 +117,7 @@ fr_value = 0
 timeout = True
 keyboard = Controller()
 def time_out():
+    global timeout
     if not nextImage:
         print("Timeout")
         timeout = True
@@ -141,6 +151,7 @@ while(not exitVariable):
                 sc_value = 0
                 mk_value = 0
                 fr_value += 1
+                # xrandr --
         else:
             exitVariable = True
         
