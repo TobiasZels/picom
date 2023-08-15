@@ -1,4 +1,4 @@
-marker:point
-scenarios:image
-framerate:120
+marker:qr
+scenarios:text_d
+framerate:144
 timeout:True

@@ -2871,7 +2871,7 @@ static void session_run(session_t *ps) {
 	ev_run(ps->loop, 0);
 }
 
-
+bool IMG_FLIP = false;
 
 uint32_t* IMG_QR_FRAME_DATA = NULL;
 uint32_t* IMG_QR_FRAME_DATA_INVERSE = NULL;

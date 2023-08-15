@@ -343,7 +343,9 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 	return result_texture;
 }
 extern uint32_t* TIMEOUT;
-
+extern bool IMG_FLIP;
+extern uint32_t* TEXT_D_AR_FRAME_DATA;
+extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE;
 /**
  * Render a region with texture data.
  *
@@ -453,10 +455,19 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Upload pixel data
-	int width = 1280/* width of your image */;
-	int height = 800/* height of your image */;
+	int width = 1920/* width of your image */;
+	int height = 1080/* height of your image */;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, TIMEOUT);
+	if(IMG_FLIP){
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, TEXT_D_AR_FRAME_DATA);
+		IMG_FLIP = !IMG_FLIP;
+	}
+	else{
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,TEXT_D_AR_FRAME_DATA_INVERSE);
+		IMG_FLIP = !IMG_FLIP;
+	}
+	
+	
 
 
 
