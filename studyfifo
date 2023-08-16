@@ -1,4 +1,4 @@
-marker:qr
+marker:aruco
 scenarios:text_w
-framerate:144
-timeout:True
+framerate:240
+timeout:False

@@ -1,11 +1,10 @@
 import os
-import keyboard
 from random import choice
+import keyboard
 import threading 
 import csv
 from datetime import datetime
 import time
-from pynput.keyboard import Key, Controller
 import argparse
 
 FIFO_PATH = "../studyfifo"
@@ -115,7 +114,6 @@ sc_value = 0
 mk_value = -1
 fr_value = 0
 timeout = True
-keyboard = Controller()
 def time_out():
     global timeout
     if not nextImage:
@@ -151,7 +149,8 @@ while(not exitVariable):
                 sc_value = 0
                 mk_value = 0
                 fr_value += 1
-                # xrandr --
+                os.system('xrandr --output DP-4 --mode 1920x1080 --rate' + framerates[fr_value] )
+                time.sleep(2)
         else:
             exitVariable = True
         

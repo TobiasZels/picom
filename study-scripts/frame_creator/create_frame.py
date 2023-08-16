@@ -29,6 +29,7 @@ h = qrCrode.shape[0]
 w = qrCrode.shape[1]
 
 og = cv2.imread("frame.png")
+og = cv2.resize(og,(1920, 1080),interpolation=cv2.INTER_AREA)
 x1 = cv2.imread("frame.png")
 x2 = cv2.imread("frame.png")
 l = 60
