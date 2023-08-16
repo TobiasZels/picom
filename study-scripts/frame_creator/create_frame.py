@@ -16,7 +16,7 @@ def change_brightness(img, value=30):
 
 i = 0
 qrCrode = cv2.imread("marker.png")
-scale_percent = 100
+scale_percent = 1200
 
 width = int(qrCrode.shape[1] * scale_percent / 100)
 height = int(qrCrode.shape[0] * scale_percent / 100)
@@ -100,7 +100,7 @@ for y in range(0,h):
         if(b - bl < 0):
             bl = 0+b
 
-        if np.sum(qrCrode[y][x]) > 200:
+        if np.sum(qrCrode[y][x]) < 200:
             x1[y + yOffset][x + xOffset] = (r-rl, g-gl, b-bl)
             x2[y + yOffset][x + xOffset] = (r+rl, g+gl, b+bl)
         else:

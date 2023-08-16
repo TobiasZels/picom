@@ -1053,8 +1053,28 @@ TPVM_Window* find_window_by_name(const char *name){
 
 }
 
-extern uint32_t* QR_FRAME_DATA;
-extern uint32_t* QR_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_QR_FRAME_DATA = NULL;
+extern uint32_t* IMG_QR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* IMG_AR_FRAME_DATA = NULL;
+extern uint32_t* IMG_AR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* IMG_DOT_FRAME_DATA = NULL;
+extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE = NULL;
+
+extern uint32_t* TEXT_W_QR_FRAME_DATA = NULL;
+extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_W_AR_FRAME_DATA = NULL;
+extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA = NULL;
+extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE = NULL;
+
+extern uint32_t* TEXT_D_QR_FRAME_DATA = NULL;
+extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_D_AR_FRAME_DATA = NULL;
+extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE = NULL;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA = NULL;
+extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE = NULL;
+
+extern uint32_t* TIMEOUT = NULL;
 
 // Render Custom Frame
 void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t tmpew, uint16_t tmpeh, xcb_render_picture_t *result, xcb_pixmap_t inner_pixmap) {
@@ -1078,6 +1098,8 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 
 	char buffer[1024];
 	char marker[256] = "qr";
+	char scenarios[256] = "text_w";
+	char timeout[256] = "False";
 
 	int fd = open(FIFO_PATH, O_RDONLY);
 	if(fd == -1){
@@ -1088,8 +1110,21 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 			buffer[bytesRead] = '\0';
 			//printf("Recieved Hashmap:\n%s\n", buffer);
 			char *key1_start = strstr(buffer, "marker:");
+			char *key3_start = strstr(buffer, "scenarios:");
+			char *key2_start = strstr(buffer, "timeout:");
+
 			if(key1_start){
 				sscanf(key1_start, "marker:%255[^:];", marker);
+			}
+
+			if(key2_start){
+				sscanf(key2_start, "timeout:%255[^:];", timeout);
+
+			}
+
+			if(key3_start){
+				sscanf(key3_start, "scenarios:%255[^:];", scenarios);
+
 			}
 			/*
 			struct json_object *json_obj = json_tokener_parse(buffer);
@@ -1203,7 +1238,44 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 		uint32_t* image_data_final;
 		printf("%d x %d \n", tmpew, tmpeh);
 		//create_tmp_frame(xd->base.c, inner_pixmap, &image_data, tmpew, tmpeh, width, height, first_frame, &image_data_final);
-		image_data_final = first_frame ? QR_FRAME_DATA : QR_FRAME_DATA_INVERSE;
+		if(strcmp(timeout, "True")){
+			if(strcmp(scenarios, "text_w")){
+				if(strcmp(marker, "qr")){
+					image_data_final = first_frame ? TEXT_W_QR_FRAME_DATA : TEXT_W_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")){
+					image_data_final = first_frame ? TEXT_W_AR_FRAME_DATA : TEXT_W_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")){
+					image_data_final = first_frame ? TEXT_W_DOT_FRAME_DATA : TEXT_W_DOT_FRAME_DATA_INVERSE;
+				}				
+			}
+			else if(strcmp(scenarios, "text_d")){
+				if(strcmp(marker, "qr")){
+					image_data_final = first_frame ? TEXT_D_QR_FRAME_DATA : TEXT_D_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")){
+					image_data_final = first_frame ? TEXT_D_AR_FRAME_DATA : TEXT_D_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")){
+					image_data_final = first_frame ? TEXT_D_DOT_FRAME_DATA : TEXT_D_DOT_FRAME_DATA_INVERSE;
+				}		
+			}
+			else if(strcmp(scenarios, "image")){
+				if(strcmp(marker, "qr")){
+					image_data_final = first_frame ? IMG_QR_FRAME_DATA : IMG_QR_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "aruco")){
+					image_data_final = first_frame ? IMG_AR_FRAME_DATA : IMG_AR_FRAME_DATA_INVERSE;
+				}
+				else if(strcmp(marker, "point")){
+					image_data_final = first_frame ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
+				}		
+			}
+		}
+		else{
+			image_data_final = TIMEOUT;
+		}
 		
 		xcb_pixmap_t pixmap;
 		xcb_render_picture_t picture;
