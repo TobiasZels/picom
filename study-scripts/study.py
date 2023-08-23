@@ -130,6 +130,7 @@ def startProgramm(screen):
     #os.system("xdotool key super+2")
 
     
+os.system('xrandr --output DP-4 --mode 1920x1080 --rate ' + framerates[0] )
 
 
 while(not exitVariable):
@@ -149,7 +150,7 @@ while(not exitVariable):
                 sc_value = 0
                 mk_value = 0
                 fr_value += 1
-                os.system('xrandr --output DP-4 --mode 1920x1080 --rate' + framerates[fr_value] )
+                os.system('xrandr --output DP-4 --mode 1920x1080 --rate ' + framerates[fr_value] )
                 time.sleep(2)
         else:
             exitVariable = True
