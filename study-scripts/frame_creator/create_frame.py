@@ -16,7 +16,7 @@ def change_brightness(img, value=30):
 
 i = 0
 qrCrode = cv2.imread("marker.png")
-scale_percent = 1200
+scale_percent = 1000
 
 width = int(qrCrode.shape[1] * scale_percent / 100)
 height = int(qrCrode.shape[0] * scale_percent / 100)
@@ -31,14 +31,18 @@ w = qrCrode.shape[1]
 og = cv2.imread("frame.png")
 og = cv2.resize(og,(1920, 1080),interpolation=cv2.INTER_AREA)
 x1 = cv2.imread("frame.png")
-x2 = cv2.imread("frame.png")
-l = 60
-r_l = l * 0.2126
-g_l = l * 0.7152
-b_l = l * 0.0722
+x1 = cv2.resize(x1,(1920, 1080),interpolation=cv2.INTER_AREA)
 
-xOffset = 500
-yOffset = 150
+x2 = cv2.imread("frame.png")
+x2 = cv2.resize(x2,(1920, 1080),interpolation=cv2.INTER_AREA)
+
+l = 30
+r_l = l #* 0.2126
+g_l = l #* 0.7152
+b_l = l #* 0.0722
+
+xOffset = 0
+yOffset = 0
 
 for y in range(0, og.shape[0]):
     print(y/og.shape[0])
