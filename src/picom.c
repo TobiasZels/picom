@@ -2897,7 +2897,7 @@ uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE = NULL;
 
 uint32_t* TIMEOUT = NULL;
 
-static void load_image(char* path, uint32_t** frame_data){
+static void load_image(char* path, uint32_t** frame_data, bool transform){
 	PIX* pix = pixRead(path);
 
 	if(pix == NULL){
@@ -2906,7 +2906,9 @@ static void load_image(char* path, uint32_t** frame_data){
 
 	pix = pixConvertTo32(pix);
 
-	//pix = pixScaleToSize(pix, 1920, 1080);
+	if(transform){
+		pix = pixScaleToSize(pix, 1920, 1080);
+	}
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
 
@@ -2945,28 +2947,28 @@ int main(int argc, char **argv) {
 	// Create a hashmap with windowname
 	tpvm_windows = NULL;
 
-	load_image("src/study_images/img/img_qr.png", &IMG_QR_FRAME_DATA);
-	load_image("src/study_images/img/img_qr_inv.png", &IMG_QR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/img/img_arc.png", &IMG_AR_FRAME_DATA);
-	load_image("src/study_images/img/img_arc_inv.png", &IMG_AR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/img/img_dot.png", &IMG_DOT_FRAME_DATA);
-	load_image("src/study_images/img/img_dot_inv.png", &IMG_DOT_FRAME_DATA_INVERSE);
+	load_image("src/study_images/img/img_qr.png", &IMG_QR_FRAME_DATA, false);
+	load_image("src/study_images/img/img_qr_inv.png", &IMG_QR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/img/img_arc.png", &IMG_AR_FRAME_DATA, false);
+	load_image("src/study_images/img/img_arc_inv.png", &IMG_AR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/img/img_dot.png", &IMG_DOT_FRAME_DATA, false);
+	load_image("src/study_images/img/img_dot_inv.png", &IMG_DOT_FRAME_DATA_INVERSE, false);
 	
-	load_image("src/study_images/text_w/text_w_qr.png", &TEXT_W_QR_FRAME_DATA);
-	load_image("src/study_images/text_w/text_w_qr_inv.png", &TEXT_W_QR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/text_w/text_w_arc.png", &TEXT_W_AR_FRAME_DATA);
-	load_image("src/study_images/text_w/text_w_arc_inv.png", &TEXT_W_AR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/text_w/text_w_dot.png", &TEXT_W_DOT_FRAME_DATA);
-	load_image("src/study_images/text_w/text_w_dot_inv.png", &TEXT_W_DOT_FRAME_DATA_INVERSE);
+	load_image("src/study_images/text_w/text_w_qr.png", &TEXT_W_QR_FRAME_DATA, false);
+	load_image("src/study_images/text_w/text_w_qr_inv.png", &TEXT_W_QR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/text_w/text_w_arc.png", &TEXT_W_AR_FRAME_DATA, false);
+	load_image("src/study_images/text_w/text_w_arc_inv.png", &TEXT_W_AR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/text_w/text_w_dot.png", &TEXT_W_DOT_FRAME_DATA, false);
+	load_image("src/study_images/text_w/text_w_dot_inv.png", &TEXT_W_DOT_FRAME_DATA_INVERSE, false);
 	
-	load_image("src/study_images/text_d/text_d_qr.png", &TEXT_D_QR_FRAME_DATA);
-	load_image("src/study_images/text_d/text_d_qr_inv.png", &TEXT_D_QR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/text_d/text_d_arc.png", &TEXT_D_AR_FRAME_DATA);
-	load_image("src/study_images/text_d/text_d_arc_inv.png", &TEXT_D_AR_FRAME_DATA_INVERSE);
-	load_image("src/study_images/text_d/text_d_dot.png", &TEXT_D_DOT_FRAME_DATA);
-	load_image("src/study_images/text_d/text_d_dot_inv.png", &TEXT_D_DOT_FRAME_DATA_INVERSE);
+	load_image("src/study_images/text_d/text_d_qr.png", &TEXT_D_QR_FRAME_DATA, false);
+	load_image("src/study_images/text_d/text_d_qr_inv.png", &TEXT_D_QR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/text_d/text_d_arc.png", &TEXT_D_AR_FRAME_DATA, false);
+	load_image("src/study_images/text_d/text_d_arc_inv.png", &TEXT_D_AR_FRAME_DATA_INVERSE, false);
+	load_image("src/study_images/text_d/text_d_dot.png", &TEXT_D_DOT_FRAME_DATA, false);
+	load_image("src/study_images/text_d/text_d_dot_inv.png", &TEXT_D_DOT_FRAME_DATA_INVERSE, false);
 	
-	load_image("src/study_images/timeout.png", &TIMEOUT);
+	load_image("src/study_images/timeout.png", &TIMEOUT, true);
 
 	// Initialize logging system for early logging
 	log_init_tls();

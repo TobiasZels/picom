@@ -563,6 +563,9 @@ if(strcmp(timeout, "True")){
 					image_data_final = IMG_FLIP ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
 				}		
 			}
+			else if(strcmp(scenarios, "fin") == 0){
+				exit(0);
+			}
 		}
 		else{
 			image_data_final = TIMEOUT;

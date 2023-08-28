@@ -81,6 +81,7 @@ beginning = True
 def key_press_event(event):
     global lastKey
     global nextImage
+    global beginning
     global timeout
     if beginning:
         if event.name == "5":
