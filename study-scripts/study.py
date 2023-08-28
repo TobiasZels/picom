@@ -137,8 +137,7 @@ while(not exitVariable):
     if(nextImage):
         print("nextScenario")
         nextImage = False
-        timer = threading.Timer(SCENARIO_TIMER, time_out)
-        timer.start()
+
         if fr_value < len(framerates)-1 or sc_value < len(scenarios) -1 or mk_value < len(marker) -1:
             if sc_value < len(scenarios)-1 or mk_value < len(marker) -1:
                 if mk_value < len(marker) -1:
@@ -155,7 +154,8 @@ while(not exitVariable):
         else:
             exitVariable = True
         
-
+        timer = threading.Timer(SCENARIO_TIMER, time_out)
+        timer.start()
         # Start the Program + emulate mod + f for fullscreen
         startProgramm(scenarios[sc_value])
         send_data(marker[mk_value], scenarios[sc_value], framerates[fr_value], False)

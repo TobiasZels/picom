@@ -4,13 +4,13 @@ import time
 import numpy as np
 import os
 
-def create_marker(frame):
-    create_Frames("marker1.png", frame, 400)
-    create_Frames("marker2.png", frame, 1000)
-    create_Frames("marker3.png", frame, 75)
+def create_marker(frame, framename):
+    create_Frames("marker1.png", frame, 400, framename, "arc")
+    create_Frames("marker2.png", frame, 1000, framename, "dot")
+    create_Frames("marker3.png", frame, 75,framename, "qr")
 
 
-def create_Frames(marker, frame, scaling):
+def create_Frames(marker, frame, scaling, framename, markername):
     i = 0
     qrCrode = cv2.imread(marker)
 
@@ -101,20 +101,20 @@ def create_Frames(marker, frame, scaling):
             if(b - bl < 0):
                 bl = 0+b
 
-            if np.sum(qrCrode[y][x]) < 200:
+            if np.sum(qrCrode[y][x]) < 254:
                 x1[y + yOffset][x + xOffset] = (r-rl, g-gl, b-bl)
                 x2[y + yOffset][x + xOffset] = (r+rl, g+gl, b+bl)
             else:
                 x1[y + yOffset][x + xOffset] = (r+rl, g+gl, b+bl)
                 x2[y + yOffset][x + xOffset] = (r-rl, g-gl, b-bl)
 
-    cv2.imwrite("output1 .png" + frame + marker, x1)
-    cv2.imwrite("output2.png" + frame + marker, x2)
+    cv2.imwrite(framename + markername + ".png", x1)
+    cv2.imwrite(framename + markername + "_inv.png", x2)
 
 
-create_marker("frame1.png")
-create_marker("frame2.png")
-create_marker("frame3.png")
+create_marker("frame1.jpg", "img_")
+create_marker("frame2.png", "text_w_")
+create_marker("frame3.png", "text_d_")
 #Y = 0.2126 R + 0.7152 G + 0.0722 B
 
 #video = cv2.VideoWriter('video.avi', 0, 120, (width,height))

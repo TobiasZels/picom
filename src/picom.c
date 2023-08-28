@@ -2906,7 +2906,7 @@ static void load_image(char* path, uint32_t** frame_data){
 
 	pix = pixConvertTo32(pix);
 
-	pix = pixScaleToSize(pix, 1920, 1080);
+	//pix = pixScaleToSize(pix, 1920, 1080);
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
 
