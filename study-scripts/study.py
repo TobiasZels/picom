@@ -76,11 +76,19 @@ def log(rating):
         f.close()
     print(rating)
 
+beginning = True
+
 def key_press_event(event):
     global lastKey
     global nextImage
     global timeout
-    if timeout and not exitVariable:
+    if beginning:
+        if event.name == "5":
+            nextImage = True
+            timeout = False
+            beginning = False
+            
+    if timeout and not exitVariable and not beginning:
         match event.name:
             case "1":
                 log(1)
@@ -131,34 +139,50 @@ def startProgramm(screen):
 
     
 os.system('xrandr --output DP-4 --mode 1920x1080 --rate ' + framerates[0] )
-
+iterations = 0
+max_iterations = 3
 
 while(not exitVariable):
     if(nextImage):
         print("nextScenario")
         nextImage = False
-
-        if fr_value < len(framerates)-1 or sc_value < len(scenarios) -1 or mk_value < len(marker) -1:
-            if sc_value < len(scenarios)-1 or mk_value < len(marker) -1:
-                if mk_value < len(marker) -1:
-                    mk_value += 1
+        if iterations < max_iterations:
+            if fr_value < len(framerates)-1 or sc_value < len(scenarios) -1 or mk_value < len(marker) -1:
+                if sc_value < len(scenarios)-1 or mk_value < len(marker) -1:
+                    if mk_value < len(marker) -1:
+                        mk_value += 1
+                    else:
+                        mk_value = 0
+                        sc_value += 1
                 else:
+                    sc_value = 0
                     mk_value = 0
-                    sc_value += 1
+                    fr_value += 1
+                    os.system('xrandr --output DP-4 --mode 1920x1080 --rate ' + framerates[fr_value] )
+                    time.sleep(2)
             else:
                 sc_value = 0
                 mk_value = 0
-                fr_value += 1
+                fr_value = 0
+                framerates = []
+                marker = []
+                scenarios = []
+                shuffle_study()
+
                 os.system('xrandr --output DP-4 --mode 1920x1080 --rate ' + framerates[fr_value] )
                 time.sleep(2)
+                iterations += 1
         else:
             exitVariable = True
-        
+
         timer = threading.Timer(SCENARIO_TIMER, time_out)
         timer.start()
         # Start the Program + emulate mod + f for fullscreen
         startProgramm(scenarios[sc_value])
         send_data(marker[mk_value], scenarios[sc_value], framerates[fr_value], False)
+        if exitVariable:
+            send_data(marker[mk_value], "fin", framerates[fr_value], False)
+
 
 
     
