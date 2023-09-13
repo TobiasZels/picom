@@ -350,6 +350,7 @@ extern uint32_t* IMG_AR_FRAME_DATA;
 extern uint32_t* IMG_AR_FRAME_DATA_INVERSE;
 extern uint32_t* IMG_DOT_FRAME_DATA;
 extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE;
+extern uint32_t* IMG_NONE;
 
 extern uint32_t* TEXT_W_QR_FRAME_DATA;
 extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE;
@@ -357,6 +358,7 @@ extern uint32_t* TEXT_W_AR_FRAME_DATA;
 extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE;
 extern uint32_t* TEXT_W_DOT_FRAME_DATA;
 extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_W_NONE;
 
 extern uint32_t* TEXT_D_QR_FRAME_DATA;
 extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE;
@@ -364,6 +366,7 @@ extern uint32_t* TEXT_D_AR_FRAME_DATA;
 extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE;
 extern uint32_t* TEXT_D_DOT_FRAME_DATA;
 extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE;
+extern uint32_t* TEXT_D_NONE;
 
 extern uint32_t* TIMEOUT;
 extern int FRAME_RATE;
@@ -539,7 +542,10 @@ if(strcmp(timeout, "True")){
 				}
 				else if(strcmp(marker, "point")== 0){
 					image_data_final = IMG_FLIP ? TEXT_W_DOT_FRAME_DATA : TEXT_W_DOT_FRAME_DATA_INVERSE;
-				}				
+				}		
+				else if(strcmp(marker, "none")== 0){
+					image_data_final = TEXT_W_NONE;
+				}			
 			}
 			else if(strcmp(scenarios, "text_d")== 0){
 				if(strcmp(marker, "qr")== 0){
@@ -550,6 +556,9 @@ if(strcmp(timeout, "True")){
 				}
 				else if(strcmp(marker, "point")== 0){
 					image_data_final = IMG_FLIP ? TEXT_D_DOT_FRAME_DATA : TEXT_D_DOT_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "none")== 0){
+					image_data_final =TEXT_D_NONE;
 				}		
 			}
 			else if(strcmp(scenarios, "image")== 0){
@@ -561,6 +570,9 @@ if(strcmp(timeout, "True")){
 				}
 				else if(strcmp(marker, "point")== 0){
 					image_data_final = IMG_FLIP ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
+				}	
+				else if(strcmp(marker, "none")== 0){
+					image_data_final = IMG_NONE;
 				}		
 			}
 			else if(strcmp(scenarios, "fin") == 0){

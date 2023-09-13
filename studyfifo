@@ -1,4 +1,4 @@
-marker:aruco
+marker:none
 scenarios:image
 framerate:144
 timeout:False
