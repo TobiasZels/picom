@@ -14,7 +14,7 @@ args = argParser.parse_args()
 id = args.participantID
 exitVariable = False
 lastKey = '0'
-AVAILABLE_FRAMERATES = ['60','120', '144', '240']
+AVAILABLE_FRAMERATES = ['200','120', '144', '240']
 AVAILABLE_MAKER = ['qr', 'aruco', 'point']
 AVAILABLE_SCENARIOS = ['text_w', 'text_d', 'image']
 
