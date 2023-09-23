@@ -344,7 +344,7 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 	return result_texture;
 }
 extern bool IMG_FLIP;
-
+extern uint32_t* QR_CODE;
 extern int FRAME_RATE;
 /**
  * Render a region with texture data.
@@ -445,61 +445,83 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, brightness);
 	glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, inner->texture);
-	glBindTexture(GL_TEXTURE_2D, customTexture);
+	glBindTexture(GL_TEXTURE_2D, inner->texture);
+	//glBindTexture(GL_TEXTURE_2D, customTexture);
 
 	// Set texture parameters
+	// Upload pixel data
+	
+	int width = img->ewidth;
+	int height = img->eheight;
+	printf("width: %d", width);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, customTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 500, 500, 0, GL_RGBA, GL_UNSIGNED_BYTE, QR_CODE);
+	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, inner->texture);
 
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+   // GLuint framebuffer;
+    //glGenFramebuffers(1, &framebuffer);
+    //glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
-    GLuint renderTexture;
-    glGenTextures(1, &renderTexture);
-    glBindTexture(GL_TEXTURE_2D, renderTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, /* width */, /* height */, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-
-
-	// Upload pixel data
-	int width = img->ewidth;/* width of your image */; 
-	int height = img->eheight;/* height of your image */;
-
+    //GLuint renderTexture;
+    //glGenTextures(1, &renderTexture);
+    //glBindTexture(GL_TEXTURE_2D, renderTexture);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
 	// TODO:
 	IMG_FLIP = !IMG_FLIP;
 
-	GLuint shaderProgram = gl_create_program_from_str(present_vertex_shader, tpvm_shader);
+	GLuint shaderProgram = gl_create_program_from_str(vertex_shader, tpvm_shader);
 
-	GLint markerTextureLoc = glGetUniformLocation(shaderProgram, "markerTexture");
-    GLint frameTextureLoc = glGetUniformLocation(shaderProgram, "frameTexture");
-    GLint alternateLoc = glGetUniformLocation(shaderProgram, "alternate");
-	
+	GLint markerTextureLoc = glGetUniformLocationChecked(shaderProgram, "markerTexture");
+    GLint frameTextureLoc = glGetUniformLocationChecked(shaderProgram, "frameTexture");
+    GLint alternateLoc = glGetUniformLocationChecked(shaderProgram, "alternate");
+
+
+	GLint viewport_dimensions[2];
+	glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
+
+	// Set projection matrix to gl viewport dimensions so we can use screen
+	// coordinates for all vertices
+	// Note: OpenGL matrices are column major
+	GLfloat projection_matrix[4][4] = {{2.0F / (GLfloat)viewport_dimensions[0], 0, 0, 0},
+	                                   {0, 2.0F / (GLfloat)viewport_dimensions[1], 0, 0},
+	                                   {0, 0, 0, 0},
+	                                   {-1, -1, 0, 1}};
+
+	int pml = glGetUniformLocationChecked(shaderProgram, "projection");
+
 	glUseProgram(shaderProgram);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, customTexture);
+	glUniformMatrix4fv(pml, 1, false, projection_matrix[0]);
+    glUniform1i(frameTextureLoc, 0);   // Assuming frame texture is bound to unit 1
+	glUniform1i(markerTextureLoc, 1);  // Assuming marker texture is bound to unit 0
+	//glUseProgram(0);
 
-	glUniform1i(markerTextureLoc, 0);  // Assuming marker texture is bound to unit 0
-    glUniform1i(frameTextureLoc, 1);   // Assuming frame texture is bound to unit 1
-    glUniform1i(alternateLoc, IMG_FLIP ? 1 : 0);  
-
-
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-    unsigned char* pixels = new unsigned char[width * height * 4];
-    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glUniform1i(alternateLoc, IMG_FLIP ? 1 : 0);  
 
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    //glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-
-
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glDeleteFramebuffers(1, &framebuffer);
+    //glDeleteTextures(1, &renderTexture);
+	
+    //uint32_t* pixels = malloc(width*height*sizeof(uint32_t));
+    //glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, inner->texture);
+	
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -526,10 +548,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glDeleteVertexArrays(1, &vao);
 
 	// Cleanup
-   	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDeleteFramebuffers(1, &framebuffer);
-    glDeleteTextures(1, &renderTexture);
-    delete[] pixels;
+
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, 0);

@@ -2899,6 +2899,7 @@ uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE = NULL;
 uint32_t* TEXT_D_NONE = NULL;
 
 uint32_t* TIMEOUT = NULL;
+uint32_t* QR_CODE = NULL;
 
 static void load_image(char* path, uint32_t** frame_data, bool transform){
 	PIX* pix = pixRead(path);
@@ -2910,7 +2911,7 @@ static void load_image(char* path, uint32_t** frame_data, bool transform){
 	pix = pixConvertTo32(pix);
 
 	if(transform){
-		pix = pixScaleToSize(pix, 1920, 1080);
+		pix = pixScaleToSize(pix, 500, 500);
 	}
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
@@ -2950,6 +2951,7 @@ int main(int argc, char **argv) {
 	// Create a hashmap with windowname
 	tpvm_windows = NULL;
 
+	load_image("study-scripts/frame_creator/qr-code.png", &QR_CODE, true);
 	// Initialize logging system for early logging
 	log_init_tls();
 
