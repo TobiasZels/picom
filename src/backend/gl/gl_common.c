@@ -344,8 +344,10 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 	return result_texture;
 }
 extern bool IMG_FLIP;
+
 extern uint32_t* QR_CODE;
 extern int FRAME_RATE;
+extern char* WINDOWNAME;
 /**
  * Render a region with texture data.
  *
@@ -453,7 +455,9 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	
 	int width = img->ewidth;
 	int height = img->eheight;
-	printf("width: %d", width);
+	printf("width: %d \n", width);
+	base->
+	printf("Dat %s will be painted \n", WINDOWNAME);
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, customTexture);
