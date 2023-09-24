@@ -831,6 +831,8 @@ static void handle_root_flags(session_t *ps) {
 	}
 }
 
+char* WINDOWNAME = NULL;
+
 static struct managed_win *
 paint_preprocess(session_t *ps, bool *fade_running, bool *animation) {
 	// XXX need better, more general name for `fade_running`. It really
@@ -859,7 +861,8 @@ paint_preprocess(session_t *ps, bool *fade_running, bool *animation) {
 		const winmode_t mode_old = w->mode;
 		const bool was_painted = w->to_paint;
 		const double opacity_old = w->opacity;
-
+		// TODO: Tobi
+		WINDOWNAME = w->name;
 		if (win_should_dim(ps, w) != w->dim) {
 			w->dim = win_should_dim(ps, w);
 			add_damage_from_win(ps, w);
@@ -982,7 +985,7 @@ paint_preprocess(session_t *ps, bool *fade_running, bool *animation) {
 		}
 
 		log_trace("Window %#010x (%s) will be painted", w->base.id, w->name);
-
+		printf("Window %#010x (%s) will be painted", w->base.id, w->name);
 		// Calculate shadow opacity
 		w->shadow_opacity = ps->o.shadow_opacity * w->opacity * ps->o.frame_opacity;
 

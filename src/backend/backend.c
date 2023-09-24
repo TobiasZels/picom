@@ -18,6 +18,7 @@ extern struct backend_operations xrender_ops, dummy_ops;
 #ifdef CONFIG_OPENGL
 extern struct backend_operations glx_ops;
 extern struct backend_operations egl_ops;
+extern char* WINDOWNAME;
 #endif
 
 struct backend_operations *backend_list[NUM_BKEND] = {
@@ -385,6 +386,8 @@ void paint_all_new(session_t *ps, struct managed_win *t) {
 					    inverted_mask, (bool[]){true});
 				}
 			}
+			WINDOWNAME = w->name;
+
 			ps->backend_data->ops->compose(
 			    ps->backend_data, w->shadow_image, shadow_coord,
 			    inverted_mask, window_coord, &reg_shadow, &reg_visible);
@@ -454,6 +457,9 @@ void paint_all_new(session_t *ps, struct managed_win *t) {
 
 		// Draw window on target
 		if (w->frame_opacity == 1) {
+			WINDOWNAME = w->name;
+			printf("%s will be painted prayge \n", WINDOWNAME);
+			// TOBI 
 			ps->backend_data->ops->compose(ps->backend_data, w->win_image,
 			                               window_coord, NULL, window_coord,
 			                               &reg_paint_in_bound, &reg_visible);
