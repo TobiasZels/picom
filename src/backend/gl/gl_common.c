@@ -9,6 +9,9 @@
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 #include <fcntl.h>
 
+#include <qrencode.h>
+#include <json-c/json.h>
+
 #include "backend/backend.h"
 #include "common.h"
 #include "compiler.h"
@@ -452,22 +455,36 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 
 	// Set texture parameters
 	// Upload pixel data
-	
+	// TOBI 
 	int width = img->ewidth;
 	int height = img->eheight;
-	printf("width: %d \n", width);
-	base->
-	printf("Dat %s will be painted \n", WINDOWNAME);
+
+
+	//printf("width: %d \n", width);
+	//printf("Dat %s will be painted \n", WINDOWNAME);
+
+	// generate CODES
+    uint32_t* pixeldata;
+	int code_width;
+	int code_height;
+
+	int test = create_repeated_qr_code(WINDOWNAME, &pixeldata, width, height, &code_width, &code_height);
+
+	// repeat codes 
+
+
+
+	//
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, customTexture);
+
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, code_width, code_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeldata);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 500, 500, 0, GL_RGBA, GL_UNSIGNED_BYTE, QR_CODE);
-	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
 
@@ -1493,4 +1510,86 @@ enum device_status gl_device_status(backend_t *base) {
 		return DEVICE_STATUS_NORMAL;
 	}
 	return DEVICE_STATUS_RESETTING;
+}
+
+
+int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, int height, int* code_width, int* code_height){
+	int dataLength = strlen(data);
+	QRcode* qrCode = NULL;
+	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_H);
+	int image_size = 0;
+	int scale = 5;
+	uint32_t* scaledQRCode;
+	int borderpxl = 5;
+	if(qrCode){
+
+
+		int border_width = qrCode->width * scale + 2 * borderpxl;
+		image_size = border_width * border_width *  sizeof(uint32_t);
+		scaledQRCode = malloc(image_size);
+
+		for(int i = 0; i < border_width; i++){
+			for(int j = 0; j < border_width; j++){
+				scaledQRCode[i* border_width + j] = 0x000000;
+			}
+		}
+
+
+		int currentRow = borderpxl;
+		for(int y = 0; y < qrCode->width; ++y){
+			for(int row = 0; row < scale; ++row){
+				int currentCol = borderpxl;
+				for(int x = 0; x < qrCode->width; ++x){
+					int index = y * qrCode->width + x;
+					int module = qrCode->data[index];
+
+						for(int col = 0; col < scale; ++col){
+
+						(scaledQRCode)[currentRow * border_width + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
+						currentCol++;
+					}
+				}
+				currentRow++;
+			}
+		}
+
+		int qrwidth = border_width;
+		int qrheight = border_width;
+
+		int heightMult = floor(height/qrheight);
+		int widthMult = floor(width/qrwidth);
+
+		image_size = qrwidth * qrheight * sizeof(uint32_t) * heightMult * widthMult;
+		*pixel_data = malloc(image_size);
+
+		if(heightMult*widthMult > 0){
+		for (int ry = 0; qrheight*ry < height- qrheight; ry++){
+			for (int y = 0; y < qrheight; ++y){
+				for (int rx = 0; qrwidth*rx < width - qrwidth ;rx++){
+					for(int x = 0; x < qrwidth; ++x){
+						int index = y * qrwidth + x;
+						int module = scaledQRCode[index];
+
+						(*pixel_data)[(y + ry * qrwidth) * qrwidth * widthMult + x + qrwidth * rx] = (module & 1) ? 0xFFFFFF : 0x000000;
+						
+					}
+				}
+			}
+		}
+		}
+		*code_height = qrheight * heightMult;
+		*code_width = qrwidth * widthMult;
+
+	}
+
+
+		// 		
+		//
+		//
+		/*
+		
+	}
+	*/
+	QRcode_free(qrCode);
+	return image_size;
 }

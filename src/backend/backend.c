@@ -458,7 +458,10 @@ void paint_all_new(session_t *ps, struct managed_win *t) {
 		// Draw window on target
 		if (w->frame_opacity == 1) {
 			WINDOWNAME = w->name;
-			printf("%s will be painted prayge \n", WINDOWNAME);
+
+			printf("%s Window is %d width \n", WINDOWNAME, w->g.width);
+
+			
 			// TOBI 
 			ps->backend_data->ops->compose(ps->backend_data, w->win_image,
 			                               window_coord, NULL, window_coord,

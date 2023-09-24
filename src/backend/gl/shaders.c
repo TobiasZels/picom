@@ -16,8 +16,8 @@ const char tpvm_shader[] = GLSL(330,
 	uniform int alternate;
 	in vec2 texcoord;
 	void main(){
-		vec2 st = texcoord.xy;
-		vec4 watermarkColor = texelFetch(markerTexture, ivec2(st.xy), 0);
+		vec2 st = texcoord.xy;	
+		vec4 watermarkColor = texelFetch(markerTexture, ivec2(st.xy) , 0);
 		//vec3 green = vec3(0,1.0f,0);
 		//gl_FragColor = vec4(green, 1);
 		//vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);

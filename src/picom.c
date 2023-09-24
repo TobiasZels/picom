@@ -861,8 +861,6 @@ paint_preprocess(session_t *ps, bool *fade_running, bool *animation) {
 		const winmode_t mode_old = w->mode;
 		const bool was_painted = w->to_paint;
 		const double opacity_old = w->opacity;
-		// TODO: Tobi
-		WINDOWNAME = w->name;
 		if (win_should_dim(ps, w) != w->dim) {
 			w->dim = win_should_dim(ps, w);
 			add_damage_from_win(ps, w);
