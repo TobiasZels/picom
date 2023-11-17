@@ -344,31 +344,7 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 	return result_texture;
 }
 extern bool IMG_FLIP;
-extern uint32_t* IMG_QR_FRAME_DATA;
-extern uint32_t* IMG_QR_FRAME_DATA_INVERSE;
-extern uint32_t* IMG_AR_FRAME_DATA;
-extern uint32_t* IMG_AR_FRAME_DATA_INVERSE;
-extern uint32_t* IMG_DOT_FRAME_DATA;
-extern uint32_t* IMG_DOT_FRAME_DATA_INVERSE;
-extern uint32_t* IMG_NONE;
 
-extern uint32_t* TEXT_W_QR_FRAME_DATA;
-extern uint32_t* TEXT_W_QR_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_W_AR_FRAME_DATA;
-extern uint32_t* TEXT_W_AR_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_W_DOT_FRAME_DATA;
-extern uint32_t* TEXT_W_DOT_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_W_NONE;
-
-extern uint32_t* TEXT_D_QR_FRAME_DATA;
-extern uint32_t* TEXT_D_QR_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_D_AR_FRAME_DATA;
-extern uint32_t* TEXT_D_AR_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_D_DOT_FRAME_DATA;
-extern uint32_t* TEXT_D_DOT_FRAME_DATA_INVERSE;
-extern uint32_t* TEXT_D_NONE;
-
-extern uint32_t* TIMEOUT;
 extern int FRAME_RATE;
 /**
  * Render a region with texture data.
@@ -478,113 +454,51 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    GLuint renderTexture;
+    glGenTextures(1, &renderTexture);
+    glBindTexture(GL_TEXTURE_2D, renderTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, /* width */, /* height */, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+
+
 	// Upload pixel data
-	int width = 1920/* width of your image */;
-	int height = 1080/* height of your image */;
+	int width = img->ewidth;/* width of your image */; 
+	int height = img->eheight;/* height of your image */;
 
-	char buffer[1024];
-	char marker[256] = "qr";
-	char scenarios[256] = "text_w";
-	char timeout[256] = "False";
-	char framerate[256] = "60";
-
-	uint32_t* image_data_final;
-
-	int fd = open(FIFO_PATH, O_RDONLY);
-	if(fd == -1){
-		printf("Error opening FIFO");
-	}else{
-		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
-		if(bytesRead > 0){
-			buffer[bytesRead] = '\0';
-			//printf("Recieved Hashmap:\n%s\n", buffer);
-			char *key1_start = strstr(buffer, "marker:");
-			char *key3_start = strstr(buffer, "scenarios:");
-			char *key2_start = strstr(buffer, "timeout:");
-			char *key4_start = strstr(buffer, "framerate:");
-
-			if(key1_start){
-				sscanf(key1_start, "marker:%255[^\n];", marker);
-			}
-
-			if(key2_start){
-				sscanf(key2_start, "timeout:%255[^\n];", timeout);
-
-			}
-
-			if(key3_start){
-				sscanf(key3_start, "scenarios:%255[^\n];", scenarios);
-
-			}
-			if(key4_start){
-				sscanf(key4_start, "framerate:%255[^\n];", framerate);
-				FRAME_RATE = atoi(framerate);
-			}
-			/*
-			struct json_object *json_obj = json_tokener_parse(buffer);
-			if(json_obj == NULL){
-				printf("Error parsing json");
-			}
-			else{
-				marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
-			}
-			*/
-		}
-	}
-	close(fd);
-if(strcmp(timeout, "True")){
-			if(strcmp(scenarios, "text_w") == 0){
-				if(strcmp(marker, "qr")== 0){
-					image_data_final = IMG_FLIP ? TEXT_W_QR_FRAME_DATA : TEXT_W_QR_FRAME_DATA_INVERSE;
-				}	
-				else if(strcmp(marker, "aruco")== 0){
-					image_data_final = IMG_FLIP ? TEXT_W_AR_FRAME_DATA : TEXT_W_AR_FRAME_DATA_INVERSE;
-				}
-				else if(strcmp(marker, "point")== 0){
-					image_data_final = IMG_FLIP ? TEXT_W_DOT_FRAME_DATA : TEXT_W_DOT_FRAME_DATA_INVERSE;
-				}		
-				else if(strcmp(marker, "none")== 0){
-					image_data_final = TEXT_W_NONE;
-				}			
-			}
-			else if(strcmp(scenarios, "text_d")== 0){
-				if(strcmp(marker, "qr")== 0){
-					image_data_final = IMG_FLIP ? TEXT_D_QR_FRAME_DATA : TEXT_D_QR_FRAME_DATA_INVERSE;
-				}	
-				else if(strcmp(marker, "aruco")== 0){
-					image_data_final = IMG_FLIP ? TEXT_D_AR_FRAME_DATA : TEXT_D_AR_FRAME_DATA_INVERSE;
-				}
-				else if(strcmp(marker, "point")== 0){
-					image_data_final = IMG_FLIP ? TEXT_D_DOT_FRAME_DATA : TEXT_D_DOT_FRAME_DATA_INVERSE;
-				}	
-				else if(strcmp(marker, "none")== 0){
-					image_data_final =TEXT_D_NONE;
-				}		
-			}
-			else if(strcmp(scenarios, "image")== 0){
-				if(strcmp(marker, "qr")== 0){
-					image_data_final = IMG_FLIP ? IMG_QR_FRAME_DATA : IMG_QR_FRAME_DATA_INVERSE;
-				}	
-				else if(strcmp(marker, "aruco")== 0){
-					image_data_final = IMG_FLIP ? IMG_AR_FRAME_DATA : IMG_AR_FRAME_DATA_INVERSE;
-				}
-				else if(strcmp(marker, "point")== 0){
-					image_data_final = IMG_FLIP ? IMG_DOT_FRAME_DATA : IMG_DOT_FRAME_DATA_INVERSE;
-				}	
-				else if(strcmp(marker, "none")== 0){
-					image_data_final = IMG_NONE;
-				}		
-			}
-			else if(strcmp(scenarios, "fin") == 0){
-				exit(0);
-			}
-		}
-		else{
-			image_data_final = TIMEOUT;
-		}
+	// TODO:
 	IMG_FLIP = !IMG_FLIP;
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data_final);
+
+	GLuint shaderProgram = gl_create_program_from_str(present_vertex_shader, tpvm_shader);
+
+	GLint markerTextureLoc = glGetUniformLocation(shaderProgram, "markerTexture");
+    GLint frameTextureLoc = glGetUniformLocation(shaderProgram, "frameTexture");
+    GLint alternateLoc = glGetUniformLocation(shaderProgram, "alternate");
 	
+	glUseProgram(shaderProgram);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, customTexture);
+
+	glUniform1i(markerTextureLoc, 0);  // Assuming marker texture is bound to unit 0
+    glUniform1i(frameTextureLoc, 1);   // Assuming frame texture is bound to unit 1
+    glUniform1i(alternateLoc, IMG_FLIP ? 1 : 0);  
+
+
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+    unsigned char* pixels = new unsigned char[width * height * 4];
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -612,6 +526,10 @@ if(strcmp(timeout, "True")){
 	glDeleteVertexArrays(1, &vao);
 
 	// Cleanup
+   	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &framebuffer);
+    glDeleteTextures(1, &renderTexture);
+    delete[] pixels;
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, 0);

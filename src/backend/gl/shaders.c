@@ -9,6 +9,39 @@ const char dummy_frag[] = GLSL(330,
 	}
 );
 
+// TPVM shader
+const char tpvm_shader[] = GLSL(330, 
+	uniform sampler2D markerTexture;
+	uniform sampler2D frameTexture;
+	uniform int alternate;
+	in vec2 texcoord;
+	void main(){
+		if(alternate == 1){
+			
+		 	if(watermarkColor.x != 0.0){
+				vec4 imageColor = texture(frameTexture, texcoord) * 0.85;
+				gl_FragColor = imageColor;
+        	}
+			else{
+				vec4 imageColor = texture(frameTexture, texcoord) * 1.15;
+				gl_FragColor = imageColor;
+			}
+
+    	} else {
+       
+        	if(watermarkColor.x == 0.0){
+            	vec4 imageColor = texture(frameTexture, texcoord) * 0.85;
+            	gl_FragColor = imageColor;
+        	}
+        	else{
+            	vec4 imageColor = texture(frameTexture, texcoord) * 1.15;
+            	gl_FragColor = imageColor;
+        	}
+		}
+	}
+)
+
+
 const char present_frag[] = GLSL(330,
 	uniform sampler2D tex;
 	in vec2 texcoord;
