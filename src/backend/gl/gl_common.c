@@ -589,6 +589,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 
 	gl_check_err();
 
+	free(pixeldata);
 	return;
 }
 
@@ -1582,14 +1583,7 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 
 	}
 
-
-		// 		
-		//
-		//
-		/*
-		
-	}
-	*/
+	free(scaledQRCode);
 	QRcode_free(qrCode);
 	return image_size;
 }
