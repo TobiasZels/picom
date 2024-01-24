@@ -21,6 +21,8 @@ if get_option('buildtype') == 'release'
 	add_global_arguments('-DNDEBUG', '-g3', language: 'c')
 endif
 
+add_global_link_arguments('-lzint', language: 'c')
+
 if get_option('sanitize')
 	sanitizers = ['address', 'undefined']
 	if cc.has_argument('-fsanitize=integer')

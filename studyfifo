@@ -1,4 +1,4 @@
-marker:none
-scenarios:image
-framerate:144
-timeout:False
+marker:dot
+scenarios:a
+payload:1
+payload_content:x3

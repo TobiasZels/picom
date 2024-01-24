@@ -2912,7 +2912,7 @@ static void load_image(char* path, uint32_t** frame_data, bool transform){
 	pix = pixConvertTo32(pix);
 
 	if(transform){
-		pix = pixScaleToSize(pix, 500, 500);
+		pix = pixScaleToSize(pix, 1920, 1080);
 	}
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
@@ -2953,6 +2953,11 @@ int main(int argc, char **argv) {
 	tpvm_windows = NULL;
 
 	load_image("study-scripts/frame_creator/qr-code.png", &QR_CODE, true);
+	load_image("src/study_images/img/img_none.jpg", &IMG_NONE, true);
+	load_image("src/study_images/text_w/text_w_none.png", &TEXT_W_NONE, true);
+	load_image("src/study_images/text_d/text_d_none.png", &TEXT_D_NONE, true);
+
+	
 	// Initialize logging system for early logging
 	log_init_tls();
 

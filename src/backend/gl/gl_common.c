@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <zint.h>
 #include <time.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 #include <fcntl.h>
@@ -12,11 +13,14 @@
 #include <qrencode.h>
 #include <json-c/json.h>
 
+#include "uthash.h"
+
 #include "backend/backend.h"
 #include "common.h"
 #include "compiler.h"
 #include "config.h"
 #include "kernel.h"
+#include "picom.h"
 #include "log.h"
 #include "region.h"
 #include "string_utils.h"
@@ -351,6 +355,32 @@ extern bool IMG_FLIP;
 extern uint32_t* QR_CODE;
 extern int FRAME_RATE;
 extern char* WINDOWNAME;
+
+
+TPVM_Window* add_window(const char* name){
+	TPVM_Window* tmpv_window;
+	tmpv_window = malloc(sizeof(TPVM_Window));
+	tmpv_window->qr_code = NULL;
+	strcpy(tmpv_window->name, name);
+	tmpv_window->first_frame = true;
+	HASH_ADD_STR(tpvm_windows, name, tmpv_window);
+	return tmpv_window;
+}
+
+TPVM_Window* find_window_by_name(const char *name){
+	TPVM_Window* tmpv_window;
+
+	HASH_FIND_STR(tpvm_windows, name, tmpv_window);
+
+	return tmpv_window;
+
+}
+
+extern uint32_t* TEXT_W_NONE;
+extern uint32_t* TEXT_D_NONE;
+extern uint32_t* IMG_NONE;
+
+
 /**
  * Render a region with texture data.
  *
@@ -453,22 +483,143 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
 	//glBindTexture(GL_TEXTURE_2D, customTexture);
 
+	// STUDY
+	char buffer[1024];
+	char marker[256] = "qr";
+	char scenarios[256] = "text_w";
+	char payload[256] = "60";
+	char payload_content[256] = "x3";
+
+	int fd = open(FIFO_PATH, O_RDONLY);
+	if(fd == -1){
+		printf("Error opening FIFO");
+	}else{
+		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
+		if(bytesRead > 0){
+			buffer[bytesRead] = '\0';
+			//printf("Recieved Hashmap:\n%s\n", buffer);
+			char *key1_start = strstr(buffer, "marker:");
+			char *key3_start = strstr(buffer, "scenarios:");
+			char *key2_start = strstr(buffer, "payload:");
+			char *key4_start = strstr(buffer, "payload_content:");
+
+
+			if(key1_start){
+				sscanf(key1_start, "marker:%255[^\n];", marker);
+			}
+
+			if(key2_start){
+				sscanf(key2_start, "payload:%255[^\n];", payload);
+
+			}
+
+			if(key3_start){
+				sscanf(key3_start, "scenarios:%255[^\n];", scenarios);
+
+			}
+
+			if(key4_start){
+				sscanf(key4_start, "payload_content:%255[^\n];", payload_content);
+
+			}
+			/*
+			struct json_object *json_obj = json_tokener_parse(buffer);
+			if(json_obj == NULL){
+				printf("Error parsing json");
+			}
+			else{
+				marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
+			}
+			*/
+		}
+	}
+	close(fd);
+
+	// END STUDY
+
 	// Set texture parameters
 	// Upload pixel data
 	// TOBI 
 	int width = img->ewidth;
 	int height = img->eheight;
-
-
-	//printf("width: %d \n", width);
-	//printf("Dat %s will be painted \n", WINDOWNAME);
+	bool first_frame = false;
 
 	// generate CODES
     uint32_t* pixeldata;
 	int code_width;
 	int code_height;
 
-	int test = create_repeated_qr_code(WINDOWNAME, &pixeldata, width, height, &code_width, &code_height);
+
+	size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
+	char* test_name = (char*)malloc(text_size);
+	int marker_number = 0;
+	char* qr = "qr";
+	uint32_t* scenario_pixels;
+
+	if(strstr(marker, qr)){
+		marker_number = 0;
+	}
+	else{
+		marker_number = 1;
+	}
+
+	if(strstr(scenarios, "image")){
+		scenario_pixels = IMG_NONE;
+	}
+	else if(strstr(scenarios, "text_d")){
+		scenario_pixels = TEXT_D_NONE;
+	}
+	else if(strstr(scenarios, "text_w")){
+		scenario_pixels = TEXT_W_NONE;
+	}
+	else{
+		scenario_pixels = NULL;
+	}
+
+	if(test_name != NULL){
+		snprintf(test_name, text_size, "%s_%s_%s", marker, scenarios, payload);
+		printf("%s \n", test_name);
+	}
+
+	if(width > 500 && height > 500){
+	
+
+	TPVM_Window* tmpv_window = find_window_by_name(test_name);
+
+	if(tmpv_window != NULL){
+
+		first_frame = tmpv_window->first_frame;
+		tmpv_window->first_frame = !first_frame;
+
+		// Create new Marker instead of reading it depending on const marker
+		if(tmpv_window->qr_code == NULL){
+			int size = create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number);
+			tmpv_window->qr_code = malloc(size);
+			memcpy(tmpv_window->qr_code, pixeldata, size);
+			tmpv_window->size = size;
+			tmpv_window->width = code_width;
+			tmpv_window->height = code_height;
+		}
+		else{
+			pixeldata = malloc(tmpv_window->size);
+			code_width = tmpv_window->width;
+			code_height = tmpv_window->height;
+			memcpy(pixeldata, tmpv_window->qr_code, tmpv_window->size);
+		}
+
+	}
+	else{
+		first_frame = true;
+		add_window(test_name);
+		create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number);	
+	}
+	}
+	//print_able_window = true;
+	free(test_name);
+
+	//printf("width: %d \n", width);
+	//printf("Dat %s will be painted \n", WINDOWNAME);
+
 
 	// repeat codes 
 
@@ -488,6 +639,10 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
 
+	if(scenario_pixels != NULL){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, scenario_pixels);
+	}
+
    // GLuint framebuffer;
     //glGenFramebuffers(1, &framebuffer);
     //glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -498,7 +653,6 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
 	// TODO:
-	IMG_FLIP = !IMG_FLIP;
 
 	GLuint shaderProgram = gl_create_program_from_str(vertex_shader, tpvm_shader);
 
@@ -527,7 +681,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glUniform1i(markerTextureLoc, 1);  // Assuming marker texture is bound to unit 0
 	//glUseProgram(0);
 
-	glUniform1i(alternateLoc, IMG_FLIP ? 1 : 0);  
+	glUniform1i(alternateLoc, first_frame ? 1 : 0);  
 
 
 	//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -543,6 +697,8 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
 	
+
+
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -1514,76 +1670,189 @@ enum device_status gl_device_status(backend_t *base) {
 }
 
 
-int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, int height, int* code_width, int* code_height){
+int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, int height, int* code_width, int* code_height, int marker_number){
+	
+	struct zint_symbol *zint = ZBarcode_Create();
+	zint->symbology = BARCODE_DOTCODE;
+	zint->scale = 1;
+	
+	ZBarcode_Encode_and_Buffer(zint, (uint8_t *)(data), 0, 0);
+	//ZBarcode_Print(zint, 0);
+	
 	int dataLength = strlen(data);
 	QRcode* qrCode = NULL;
+	
 	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_H);
 	int image_size = 0;
-	int scale = 5;
 	uint32_t* scaledQRCode;
 	int borderpxl = 5;
+	int code = marker_number;
+
 	if(qrCode){
+		if(code == 0){
+			int scale = 5;
 
+			int marker_width = qrCode->width;
+			int marker_height = qrCode->width;
+			auto marker_data = qrCode->data;	
 
-		int border_width = qrCode->width * scale + 2 * borderpxl;
-		image_size = border_width * border_width *  sizeof(uint32_t);
-		scaledQRCode = malloc(image_size);
+			int border_width = marker_width * scale + 2 * borderpxl;
+			int border_height = marker_height * scale + 2 * borderpxl;
+			image_size = border_width * border_height *  sizeof(uint32_t);
+			scaledQRCode = malloc(image_size);
 
-		for(int i = 0; i < border_width; i++){
-			for(int j = 0; j < border_width; j++){
-				scaledQRCode[i* border_width + j] = 0x000000;
+			for(int i = 0; i < border_height; i++){
+				for(int j = 0; j < border_width; j++){
+					scaledQRCode[i* border_width + j] = 0x000000;
+				}
 			}
-		}
 
 
-		int currentRow = borderpxl;
-		for(int y = 0; y < qrCode->width; ++y){
-			for(int row = 0; row < scale; ++row){
-				int currentCol = borderpxl;
-				for(int x = 0; x < qrCode->width; ++x){
-					int index = y * qrCode->width + x;
-					int module = qrCode->data[index];
+			int currentRow = borderpxl;
+			for(int y = 0; y < marker_width; ++y){
+				for(int row = 0; row < scale; ++row){
+					int currentCol = borderpxl;
+					for(int x = 0; x < marker_height; ++x){
+						int index = y * marker_width + x;
+						int module = marker_data[index];
+							for(int col = 0; col < scale; ++col){
+									(scaledQRCode)[currentRow * border_width + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
+								
+							currentCol++;
+						}
+					}
+					currentRow++;
+				}
+			}
 
-						for(int col = 0; col < scale; ++col){
+			int qrwidth = border_width;
+			int qrheight = border_height;
 
-						(scaledQRCode)[currentRow * border_width + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
-						currentCol++;
+			int heightMult = floor(height/qrheight);
+			int widthMult = floor(width/qrwidth);
+
+			image_size = qrwidth * qrheight * sizeof(uint32_t) * heightMult * widthMult;
+			*pixel_data = malloc(image_size);
+
+			if(heightMult*widthMult > 0){
+			for (int ry = 0; qrheight*ry < height- qrheight; ry++){
+				for (int y = 0; y < qrheight; ++y){
+					for (int rx = 0; qrwidth*rx < width - qrwidth ;rx++){
+						for(int x = 0; x < qrwidth; ++x){
+							int index = y * qrwidth + x;
+							int module = scaledQRCode[index];
+
+							(*pixel_data)[(y + ry * qrwidth) * qrwidth * widthMult + x + qrwidth * rx] = (module & 1) ? 0xFFFFFF : 0x000000;
+							
+						}
 					}
 				}
-				currentRow++;
 			}
+			}
+			*code_height = qrheight * heightMult;
+			*code_width = qrwidth * widthMult;
+
 		}
 
-		int qrwidth = border_width;
-		int qrheight = border_width;
+		else if(code == 1){
+			int scale = 4;
 
-		int heightMult = floor(height/qrheight);
-		int widthMult = floor(width/qrwidth);
+			int marker_width = zint->bitmap_width;
+			int marker_height = zint->bitmap_height;
+			//*code_height = marker_height;
+			//*code_width = marker_width;
+			//uint32_t* marker_data = malloc(marker_height * marker_width * sizeof(uint32_t));
+			int pixPos, arrayPos;
+			pixPos = 0;
+			arrayPos = 0;
+			int r,g,b;
+			image_size = marker_width * marker_height * sizeof(uint32_t);
+			//*pixel_data = malloc(image_size);
+			uint32_t* marker_data = malloc(marker_height * marker_width * sizeof(uint32_t));
 
-		image_size = qrwidth * qrheight * sizeof(uint32_t) * heightMult * widthMult;
-		*pixel_data = malloc(image_size);
+			for(int row = 0; row < zint->bitmap_height; row++){
+				for(int col = 0; col < zint->bitmap_width; col++){
+					r = (int)zint->bitmap[pixPos];
+					g = (int)zint->bitmap[pixPos + 1];
+					b = (int)zint->bitmap[pixPos + 2];
+					uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+					(marker_data)[arrayPos] = (rgb & 1) ? 0xFFFFFF : 0x000000;
+					pixPos+= 3;
+					arrayPos++;
+				}
+			}
 
-		if(heightMult*widthMult > 0){
-		for (int ry = 0; qrheight*ry < height- qrheight; ry++){
-			for (int y = 0; y < qrheight; ++y){
-				for (int rx = 0; qrwidth*rx < width - qrwidth ;rx++){
-					for(int x = 0; x < qrwidth; ++x){
-						int index = y * qrwidth + x;
-						int module = scaledQRCode[index];
 
-						(*pixel_data)[(y + ry * qrwidth) * qrwidth * widthMult + x + qrwidth * rx] = (module & 1) ? 0xFFFFFF : 0x000000;
+
+
+			int border_width = marker_width * scale + 2 * borderpxl;
+			int border_height = marker_height * scale + 2 * borderpxl;
+			image_size = border_width * border_height *  sizeof(uint32_t);
+			scaledQRCode = malloc(image_size);
+
+			for(int i = 0; i < border_height; i++){
+				for(int j = 0; j < border_width; j++){
+					scaledQRCode[i* border_width + j] = 0x000000;
+				}
+			}
+
+
+			int currentRow = borderpxl;
+			for(int y = 0; y < marker_height; ++y){
+				for(int row = 0; row < scale; ++row){
+					int currentCol = borderpxl;
+					for(int x = 0; x < marker_width; ++x){
+						int index = y * marker_width + x;
+						int module = marker_data[index];
+							for(int col = 0; col < scale; ++col){
+									(scaledQRCode)[currentRow * border_width + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
+								
+							currentCol++;
+						}
+					}
+					currentRow++;
+				}
+			}
+
+			int qrwidth = border_width;
+			int qrheight = border_height;
+
+			int heightMult = floor(height/qrheight);
+			int widthMult = floor(width/qrwidth);
+
+			image_size = qrwidth * qrheight * sizeof(uint32_t) * heightMult * widthMult;
+			*pixel_data = malloc(image_size);
+			uint32_t maxValue = 0;
+			if(heightMult*widthMult > 0){
+			for (int ry = 0; ry < heightMult; ry++){
+				for (int y = 0; y < qrheight; ++y){
+					for (int rx = 0; rx < widthMult ;rx++){
+						for(int x = 0; x < qrwidth; ++x){
+							int index = y * qrwidth + x;
+							int module = scaledQRCode[index];
+
+							(*pixel_data)[(x + rx * qrwidth) + (y * qrwidth * widthMult) + ry * qrheight * qrwidth * widthMult] = (module & 1) ? 0xFFFFFF : 0x000000;
+							 maxValue = (x + rx * qrwidth) + (y * qrwidth * widthMult) + ry * qrheight * sizeof(uint32_t);
+							/*
+							0	12345 678910 ...
+							1	12345
+							2
+							3
+							*/
 						
+						
+						}
 					}
 				}
 			}
+			}
+			maxValue = maxValue;
+			*code_height = qrheight * heightMult;
+			*code_width = qrwidth * widthMult;
 		}
-		}
-		*code_height = qrheight * heightMult;
-		*code_width = qrwidth * widthMult;
-
 	}
-
-	free(scaledQRCode);
+	ZBarcode_Delete(zint);
+	//free(scaledQRCode);
 	QRcode_free(qrCode);
 	return image_size;
 }

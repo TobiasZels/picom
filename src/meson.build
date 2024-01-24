@@ -7,6 +7,9 @@ base_deps = [
 	libev
 ]
 
+cc.find_library('libzint')
+cc.find_library('zint')
+
 srcs = [ files('picom.c', 'win.c', 'c2.c', 'x.c', 'config.c', 'vsync.c', 'utils.c',
                'diagnostic.c', 'string_utils.c', 'render.c', 'kernel.c', 'log.c',
                'options.c', 'event.c', 'cache.c', 'atom.c', 'file_watch.c', 'statistics.c') ]
@@ -37,6 +40,7 @@ if not cc.has_header('uthash.h')
 endif
 
 deps = []
+cflags += ['-lzint']
 
 if get_option('config_file')
 	deps += [dependency('libconfig', version: '>=1.4', required: true)]

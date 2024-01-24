@@ -1033,6 +1033,7 @@ struct backend_operations xrender_ops = {
     .get_blur_size = get_blur_size,
 };
 
+/*
 TPVM_Window* add_window(const char* name){
 	TPVM_Window* tmpv_window;
 	tmpv_window = malloc(sizeof(TPVM_Window));
@@ -1051,7 +1052,7 @@ TPVM_Window* find_window_by_name(const char *name){
 	return tmpv_window;
 
 }
-
+*/
 extern uint32_t* IMG_QR_FRAME_DATA;
 extern uint32_t* IMG_QR_FRAME_DATA_INVERSE;
 extern uint32_t* IMG_AR_FRAME_DATA;
