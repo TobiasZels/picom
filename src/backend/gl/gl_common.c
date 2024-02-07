@@ -556,6 +556,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
 	char* test_name = (char*)malloc(text_size);
 	int marker_number = 0;
+	int aruco_size = 2;
 	char* qr = "qr";
 	uint32_t* scenario_pixels;
 
@@ -567,6 +568,18 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	}
 	else{
 		marker_number = 1;
+	}
+
+	if(strstr(payload, "2")){
+		aruco_size = 1;
+	}
+	else if(strstr(payload, "20")){
+		aruco_size = 2;
+
+	}
+	else if(strstr(payload, "200")){
+		aruco_size = 3;
+
 	}
 
 	if(strstr(scenarios, "image")){
@@ -599,7 +612,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 
 		// Create new Marker instead of reading it depending on const marker
 		if(tmpv_window->qr_code == NULL){
-			int size = create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number);
+			int size = create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number, aruco_size);
 			tmpv_window->qr_code = malloc(size);
 			memcpy(tmpv_window->qr_code, pixeldata, size);
 			tmpv_window->size = size;
@@ -618,7 +631,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 
 		first_frame = true;
 		add_window(test_name);
-		create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number);	
+		create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number, aruco_size);	
 	
 
 	}
@@ -1681,7 +1694,7 @@ enum device_status gl_device_status(backend_t *base) {
 }
 
 
-int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, int height, int* code_width, int* code_height, int marker_number){
+int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, int height, int* code_width, int* code_height, int marker_number, int aruco_size){
 	
 	struct zint_symbol *zint = ZBarcode_Create();
 	zint->symbology = BARCODE_DOTCODE;
@@ -1765,9 +1778,9 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 
 		}
 		else if(code == 2){
-			int marker_width = 200;
-			int marker_height = 200;
-			int scale = 2;
+			int marker_width = 300;
+			int marker_height = 300;
+			int scale = 1;
 			int pixPos, arrayPos;
 			pixPos = 0;
 			arrayPos = 0;
@@ -1778,12 +1791,23 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 
 			for(int row = 0; row < marker_width; row++){
 				for(int col = 0; col < marker_height; col++){
+					if(aruco_size == 1){
 					r = (int)ARUCO_SMALL[pixPos];
-					g = (int)ARUCO_SMALL[pixPos + 1];
-					b = (int)ARUCO_SMALL[pixPos + 2];
-					uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
-					(marker_data)[arrayPos] = (rgb & 1) ? 0xFFFFFF : 0x000000;
-					pixPos+= 3;
+
+					}
+					else if(aruco_size == 2){
+					r = (int)ARUCO_MEDIUM[pixPos];
+
+					}
+					else {
+					r = (int)ARUCO_LARGE[pixPos];
+
+					}
+					//g = (int)ARUCO_SMALL[pixPos + 1];
+					//b = (int)ARUCO_SMALL[pixPos + 2];
+					//uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+					(marker_data)[arrayPos] = (r & 1) ? 0xFFFFFF : 0x000000;
+					pixPos+= 1;
 					arrayPos++;
 				}
 			}
