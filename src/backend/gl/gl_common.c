@@ -380,6 +380,9 @@ extern uint32_t* TEXT_W_NONE;
 extern uint32_t* TEXT_D_NONE;
 extern uint32_t* IMG_NONE;
 
+extern uint32_t* ARUCO_SMALL;
+extern uint32_t* ARUCO_MEDIUM;
+extern uint32_t* ARUCO_LARGE;
 
 /**
  * Render a region with texture data.
@@ -559,6 +562,9 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	if(strstr(marker, qr)){
 		marker_number = 0;
 	}
+	else if(strstr(marker, "aruco")){
+		marker_number = 2;
+	}
 	else{
 		marker_number = 1;
 	}
@@ -606,12 +612,15 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 			code_height = tmpv_window->height;
 			memcpy(pixeldata, tmpv_window->qr_code, tmpv_window->size);
 		}
-
+		
 	}
 	else{
+
 		first_frame = true;
 		add_window(test_name);
 		create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number);	
+	
+
 	}
 	}
 	//print_able_window = true;
@@ -746,6 +755,8 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	gl_check_err();
 
 	free(pixeldata);
+
+
 	return;
 }
 
@@ -1685,12 +1696,12 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 	qrCode = QRcode_encodeData(dataLength, data, 0, QR_ECLEVEL_H);
 	int image_size = 0;
 	uint32_t* scaledQRCode;
-	int borderpxl = 5;
+	int borderpxl = 15;
 	int code = marker_number;
 
 	if(qrCode){
 		if(code == 0){
-			int scale = 5;
+			int scale = 7;
 
 			int marker_width = qrCode->width;
 			int marker_height = qrCode->width;
@@ -1703,7 +1714,7 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 
 			for(int i = 0; i < border_height; i++){
 				for(int j = 0; j < border_width; j++){
-					scaledQRCode[i* border_width + j] = 0x000000;
+					scaledQRCode[i* border_width + j] = 0x00000;
 				}
 			}
 
@@ -1752,6 +1763,98 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 			*code_height = qrheight * heightMult;
 			*code_width = qrwidth * widthMult;
 
+		}
+		else if(code == 2){
+			int marker_width = 200;
+			int marker_height = 200;
+			int scale = 2;
+			int pixPos, arrayPos;
+			pixPos = 0;
+			arrayPos = 0;
+			int r,g,b;
+			image_size = marker_width * marker_height * sizeof(uint32_t);
+			//*pixel_data = malloc(image_size);
+			uint32_t* marker_data = malloc(marker_height * marker_width * sizeof(uint32_t));
+
+			for(int row = 0; row < marker_width; row++){
+				for(int col = 0; col < marker_height; col++){
+					r = (int)ARUCO_SMALL[pixPos];
+					g = (int)ARUCO_SMALL[pixPos + 1];
+					b = (int)ARUCO_SMALL[pixPos + 2];
+					uint32_t rgb = ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+					(marker_data)[arrayPos] = (rgb & 1) ? 0xFFFFFF : 0x000000;
+					pixPos+= 3;
+					arrayPos++;
+				}
+			}
+
+
+
+
+			int border_width = marker_width * scale + 2 * borderpxl;
+			int border_height = marker_height * scale + 2 * borderpxl;
+			image_size = border_width * border_height *  sizeof(uint32_t);
+			scaledQRCode = malloc(image_size);
+
+			for(int i = 0; i < border_height; i++){
+				for(int j = 0; j < border_width; j++){
+					scaledQRCode[i* border_width + j] = 0x000000;
+				}
+			}
+
+
+			int currentRow = borderpxl;
+			for(int y = 0; y < marker_height; ++y){
+				for(int row = 0; row < scale; ++row){
+					int currentCol = borderpxl;
+					for(int x = 0; x < marker_width; ++x){
+						int index = y * marker_width + x;
+						int module = marker_data[index];
+							for(int col = 0; col < scale; ++col){
+									(scaledQRCode)[currentRow * border_width + currentCol] = (module & 1) ? 0xFFFFFF : 0x000000;
+								
+							currentCol++;
+						}
+					}
+					currentRow++;
+				}
+			}
+
+			int qrwidth = border_width;
+			int qrheight = border_height;
+
+			int heightMult = floor(height/qrheight);
+			int widthMult = floor(width/qrwidth);
+
+			image_size = qrwidth * qrheight * sizeof(uint32_t) * heightMult * widthMult;
+			*pixel_data = malloc(image_size);
+			uint32_t maxValue = 0;
+			if(heightMult*widthMult > 0){
+			for (int ry = 0; ry < heightMult; ry++){
+				for (int y = 0; y < qrheight; ++y){
+					for (int rx = 0; rx < widthMult ;rx++){
+						for(int x = 0; x < qrwidth; ++x){
+							int index = y * qrwidth + x;
+							int module = scaledQRCode[index];
+
+							(*pixel_data)[(x + rx * qrwidth) + (y * qrwidth * widthMult) + ry * qrheight * qrwidth * widthMult] = (module & 1) ? 0xFFFFFF : 0x000000;
+							 maxValue = (x + rx * qrwidth) + (y * qrwidth * widthMult) + ry * qrheight * sizeof(uint32_t);
+							/*
+							0	12345 678910 ...
+							1	12345
+							2
+							3
+							*/
+						
+						
+						}
+					}
+				}
+			}
+			}
+			maxValue = maxValue;
+			*code_height = qrheight * heightMult;
+			*code_width = qrwidth * widthMult;
 		}
 
 		else if(code == 1){

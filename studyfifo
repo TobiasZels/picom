@@ -1,4 +1,4 @@
-marker:dot
+marker:aruco
 scenarios:a
 payload:1
 payload_content:x3

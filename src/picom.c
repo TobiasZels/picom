@@ -2902,6 +2902,11 @@ uint32_t* TEXT_D_NONE = NULL;
 uint32_t* TIMEOUT = NULL;
 uint32_t* QR_CODE = NULL;
 
+uint32_t* ARUCO_SMALL = NULL;
+uint32_t* ARUCO_MEDIUM = NULL;
+uint32_t* ARUCO_LARGE = NULL;
+
+
 static void load_image(char* path, uint32_t** frame_data, bool transform){
 	PIX* pix = pixRead(path);
 
@@ -2957,7 +2962,10 @@ int main(int argc, char **argv) {
 	load_image("src/study_images/text_w/text_w_none.png", &TEXT_W_NONE, true);
 	load_image("src/study_images/text_d/text_d_none.png", &TEXT_D_NONE, true);
 
-	
+	load_image("src/study_images/aruco/aruco_1.png", &ARUCO_SMALL, false);
+	load_image("src/study_images/aruco/aruco_2.png", &ARUCO_MEDIUM, false);
+	load_image("src/study_images/aruco/aruco_3.png", &ARUCO_LARGE, false);
+
 	// Initialize logging system for early logging
 	log_init_tls();
 
