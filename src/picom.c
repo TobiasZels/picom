@@ -44,6 +44,7 @@
 #include "err.h"
 #include "kernel.h"
 #include "picom.h"
+#include "backend/tpvm.h"
 #ifdef CONFIG_OPENGL
 #include "opengl.h"
 #endif
@@ -68,10 +69,6 @@
 #include "options.h"
 #include "statistics.h"
 #include "uthash_extra.h"
-
-// TZ
-
-int FRAME_RATE = 60;
 
 /// Get session_t pointer from a pointer to a member of session_t
 #define session_ptr(ptr, member)                                                         \
@@ -305,23 +302,8 @@ schedule:
 	ev_timer_set(&ps->draw_timer, 0, 0);
 	ev_timer_start(ps->loop, &ps->draw_timer);
 }
-#define FIFO_PATH "studyfifo"
+
 void queue_redraw(session_t *ps) {
-	//TZ
-	char buffer[1024];
-
-	int fd = open(FIFO_PATH, O_RDONLY);
-	if(fd == -1){
-		printf("Error opening FIFO");
-	}else{
-		ssize_t bytesRead = read(fd, buffer, sizeof(buffer));
-		if(bytesRead > 0){
-			buffer[bytesRead] = '\0';
-			//printf("Recieved Hashmap:\n%s\n", buffer);
-		}
-	}
-
-	close(fd);
 
 	if (ps->screen_is_off) {
 		// The screen is off, if there is a draw queued for the next frame (i.e.
@@ -1886,33 +1868,50 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 static void draw_callback(EV_P_ ev_timer *w, int revents) {
 	session_t *ps = session_ptr(w, draw_timer);
 	
+	/*
+		Vsync should handle this, so should only be needed for Study.
+		Sets the dely for each frame depending on FPS
+		and renders them after the elapsed time.
+	*/
+
+	// Get current time at the start of the render
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	unsigned long current_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-	clock_t start_time = clock();
-
-
-	printf("current_time %d\n", current_time);
 	
-	draw_callback_impl(EV_A_ ps, revents);
+	// Debug:
+		// clock_t start_time = clock();
+		// printf("current_time %d\n", current_time);
+	
+	// Picom implementation
 	ev_timer_stop(EV_A_ w);
+	draw_callback_impl(EV_A_ ps, revents);
+
+	// Get current tome at the end of the render and calculate render time
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	unsigned long render_time = ts.tv_sec * 1000 + ts.tv_nsec / 1000000 - current_time;
-	printf("render_time %d\n", render_time);
+	
+	// Debug:
+		// printf("render_time %d\n", render_time);
 
+	// Calculate the sleep time when the render is faster then the FPS need
 	unsigned long fps = 144;
 	unsigned long frame_time = 1000 / fps;
 	double sleep_time = frame_time > render_time ? frame_time - render_time : 0;
 
 	// Immediately start next frame if we are in benchmark mode.
-	// TZ hier o.benchmark worked net
+	// o.benchmark doesnt work in this version of picom so we invert it
+	// to always output maximum of frames
 	if (!ps->o.benchmark) {
-		printf("sleep_time: %d\n", sleep_time/1000);
-		clock_t end_time = clock();
-		double time_taken = (double)(end_time - start_time) * 1000.0 /CLOCKS_PER_SEC;
-		printf("Time taken total . %.2f ms \n", time_taken);
+		// Debug:
+			// printf("sleep_time: %d\n", sleep_time/1000);
+			// clock_t end_time = clock();
+			// double time_taken = (double)(end_time - start_time) * 1000.0 /CLOCKS_PER_SEC;
+			// printf("Time taken total . %.2f ms \n", time_taken);
+			
 		//shedule_render(ps, false);
 		
+		// Shedule next render depending on sleep_time
 		ev_timer_set(w, sleep_time/1000, 0);
 		ev_timer_start(EV_A_ w);
 	}
@@ -2873,6 +2872,8 @@ static void session_run(session_t *ps) {
 	ev_run(ps->loop, 0);
 }
 
+
+// Images for Study
 bool IMG_FLIP = false;
 
 uint32_t* IMG_QR_FRAME_DATA = NULL;
@@ -2906,24 +2907,27 @@ uint32_t* ARUCO_SMALL = NULL;
 uint32_t* ARUCO_MEDIUM = NULL;
 uint32_t* ARUCO_LARGE = NULL;
 
-
+// Function for Study to load images and convert them to the right format
 static void load_image(char* path, uint32_t** frame_data, bool transform){
+	
+	// Read the images from the given path
 	PIX* pix = pixRead(path);
-
 	if(pix == NULL){
 			printf("FAIL");
 		}
-
 	pix = pixConvertTo32(pix);
 
+	// Transform the image to the study display size if needed
 	if(transform){
 		pix = pixScaleToSize(pix, 1920, 1080);
 	}
+
+	// Allocate the needed memory for the Image
 	int width = pixGetWidth(pix);
 	int height = pixGetHeight(pix);
-
 	*frame_data = malloc(width * height * sizeof(uint32_t));
 
+	// Convert it from PIX* to uint_32
 	for(int y = 0; y < height; ++y){
 		for(int x = 0; x < width; ++x){
 
@@ -2941,7 +2945,9 @@ static void load_image(char* path, uint32_t** frame_data, bool transform){
 
 		}
 	}
-	printf("%d x %d", width, height);
+	// printf("%d x %d", width, height);
+
+	// Free memory 
 	pixDestroy(&pix);
 }
 
