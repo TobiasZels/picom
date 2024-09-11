@@ -29,6 +29,8 @@
 
 #include "backend/backend_common.h"
 #include "backend/gl/gl_common.h"
+#include "backend/tpvm.h"
+
 #define FIFO_PATH "studyfifo"
 void gl_prepare(backend_t *base, const region_t *reg attr_unused) {
 	auto gd = (struct gl_data *)base;
@@ -356,26 +358,6 @@ extern uint32_t* QR_CODE;
 extern int FRAME_RATE;
 extern char* WINDOWNAME;
 
-
-TPVM_Window* add_window(const char* name){
-	TPVM_Window* tmpv_window;
-	tmpv_window = malloc(sizeof(TPVM_Window));
-	tmpv_window->qr_code = NULL;
-	strcpy(tmpv_window->name, name);
-	tmpv_window->first_frame = true;
-	HASH_ADD_STR(tpvm_windows, name, tmpv_window);
-	return tmpv_window;
-}
-
-TPVM_Window* find_window_by_name(const char *name){
-	TPVM_Window* tmpv_window;
-
-	HASH_FIND_STR(tpvm_windows, name, tmpv_window);
-
-	return tmpv_window;
-
-}
-
 extern uint32_t* TEXT_W_NONE;
 extern uint32_t* TEXT_D_NONE;
 extern uint32_t* IMG_NONE;
@@ -475,9 +457,6 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	// log_trace("Draw: %d, %d, %d, %d -> %d, %d (%d, %d) z %d\n",
 	//          x, y, width, height, dx, dy, ptex->width, ptex->height, z);
 
-
-	GLuint customTexture;
-	glGenTextures(1, &customTexture);
 	
 	// Bind texture
 	glActiveTexture(GL_TEXTURE1);
@@ -487,6 +466,7 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	//glBindTexture(GL_TEXTURE_2D, customTexture);
 
 	// STUDY
+	/* 
 	char buffer[1024];
 	char marker[256] = "qr";
 	char scenarios[256] = "text_w";
@@ -525,24 +505,22 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 				sscanf(key4_start, "payload_content:%255[^\n];", payload_content);
 
 			}
-			/*
-			struct json_object *json_obj = json_tokener_parse(buffer);
-			if(json_obj == NULL){
-				printf("Error parsing json");
-			}
-			else{
-				marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
-			}
-			*/
+			//
+			//struct json_object *json_obj = json_tokener_parse(buffer);
+			//if(json_obj == NULL){
+			//	printf("Error parsing json");
+			//}
+			//else{
+		//		marker = json_object_get_string(json_object_object_get(json_obj, "marker"));
+		//	}
+			//
 		}
 	}
 	close(fd);
-
-	// END STUDY
+	*/
 
 	// Set texture parameters
 	// Upload pixel data
-	// TOBI 
 	int width = img->ewidth;
 	int height = img->eheight;
 	bool first_frame = false;
@@ -551,15 +529,17 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
     uint32_t* pixeldata;
 	int code_width;
 	int code_height;
+	//strcat(payload_content, " ");
+	//strcat(payload_content, WINDOWNAME);
 
+	//size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
+	//char* test_name = (char*)malloc(text_size);
+	//int marker_number = 0;
+	//int aruco_size = 2;
+	//char* qr = "qr";
+	//uint32_t* scenario_pixels;
 
-	size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
-	char* test_name = (char*)malloc(text_size);
-	int marker_number = 0;
-	int aruco_size = 2;
-	char* qr = "qr";
-	uint32_t* scenario_pixels;
-
+	/*
 	if(strstr(marker, qr)){
 		marker_number = 0;
 	}
@@ -599,72 +579,49 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 		snprintf(test_name, text_size, "%s_%s_%s", marker, scenarios, payload);
 		printf("%s \n", test_name);
 	}
+	*/
+	// STUDY END
 
+	// Only use TPVM for windows bigger then 500 pixel to prevent toolbars etc.
+	// to have TPVM markers
 	if(width > 500 && height > 500){
-	
-
-	TPVM_Window* tmpv_window = find_window_by_name(test_name);
-
-	if(tmpv_window != NULL){
-
-		first_frame = tmpv_window->first_frame;
-		tmpv_window->first_frame = !first_frame;
-
-		// Create new Marker instead of reading it depending on const marker
-		if(tmpv_window->qr_code == NULL){
-			int size = create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number, aruco_size);
-			tmpv_window->qr_code = malloc(size);
-			memcpy(tmpv_window->qr_code, pixeldata, size);
-			tmpv_window->size = size;
-			tmpv_window->width = code_width;
-			tmpv_window->height = code_height;
-		}
-		else{
-			pixeldata = malloc(tmpv_window->size);
-			code_width = tmpv_window->width;
-			code_height = tmpv_window->height;
-			memcpy(pixeldata, tmpv_window->qr_code, tmpv_window->size);
-		}
+    	// Get the frame through generation or Hashmap
+		marker_frame frame;
+		frame = create_marker_with_mapping(WINDOWNAME, MARKER_QR, 15,7,true,height,width);
 		
-	}
-	else{
+		// Copy all the necassary information out of the frame struct
+		pixeldata = malloc(frame.memorySize);
+		memcpy(pixeldata, frame.data, frame.memorySize);
+		code_width = frame.width;
+		code_height = frame.height;
+		first_frame = frame.negativeImage;
 
-		first_frame = true;
-		add_window(test_name);
-		create_repeated_qr_code(payload_content, &pixeldata, width, height, &code_width, &code_height, marker_number, aruco_size);	
+		// Free the frame struct cause its no longer needed
+		free(frame.data);
+	}
+
+
+	GLuint customTexture;
+	glGenTextures(1, &customTexture);
 	
-
-	}
-	}
-	//print_able_window = true;
-	free(test_name);
-
-	//printf("width: %d \n", width);
-	//printf("Dat %s will be painted \n", WINDOWNAME);
-
-
-	// repeat codes 
-
-
-
-	//
-
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, customTexture);
-
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, code_width, code_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeldata);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
 
-	if(scenario_pixels != NULL){
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, scenario_pixels);
-	}
-
+	/* STUDY */
+	// Displays the image overlaying all the display information
+	// usefull for instructions during study
+	//if(scenario_pixels != NULL){
+	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, scenario_pixels);
+	//}
    // GLuint framebuffer;
     //glGenFramebuffers(1, &framebuffer);
     //glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -674,14 +631,14 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
     //glBindTexture(GL_TEXTURE_2D, renderTexture);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
-	// TODO:
 
+	// Create the shader
 	GLuint shaderProgram = gl_create_program_from_str(vertex_shader, tpvm_shader);
 
+	// Give it the needed params
 	GLint markerTextureLoc = glGetUniformLocationChecked(shaderProgram, "markerTexture");
     GLint frameTextureLoc = glGetUniformLocationChecked(shaderProgram, "frameTexture");
     GLint alternateLoc = glGetUniformLocationChecked(shaderProgram, "alternate");
-
 
 	GLint viewport_dimensions[2];
 	glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
@@ -701,26 +658,14 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glUniformMatrix4fv(pml, 1, false, projection_matrix[0]);
     glUniform1i(frameTextureLoc, 0);   // Assuming frame texture is bound to unit 1
 	glUniform1i(markerTextureLoc, 1);  // Assuming marker texture is bound to unit 0
-	//glUseProgram(0);
 
-	glUniform1i(alternateLoc, first_frame ? 1 : 0);  
+	glUniform1i(alternateLoc, first_frame ? 1 : 0); // Convert bool to int
 
-
-	//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    //glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glDeleteFramebuffers(1, &framebuffer);
-    //glDeleteTextures(1, &renderTexture);
-	
-    //uint32_t* pixels = malloc(width*height*sizeof(uint32_t));
-    //glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inner->texture);
-	
 
 
+	// Picom 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
@@ -768,7 +713,6 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	gl_check_err();
 
 	free(pixeldata);
-
 
 	return;
 }
@@ -1701,7 +1645,7 @@ int create_repeated_qr_code(const char* data, uint32_t** pixel_data, int width, 
 	zint->scale = 1;
 	
 	ZBarcode_Encode_and_Buffer(zint, (uint8_t *)(data), 0, 0);
-	//ZBarcode_Print(zint, 0);
+	ZBarcode_Print(zint, 0);
 	
 	int dataLength = strlen(data);
 	QRcode* qrCode = NULL;

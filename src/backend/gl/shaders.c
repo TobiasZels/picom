@@ -11,38 +11,50 @@ const char dummy_frag[] = GLSL(330,
 
 // TPVM shader
 const char tpvm_shader[] = GLSL(330, 
-	uniform sampler2D frameTexture;
-	uniform sampler2D markerTexture;
-	uniform int alternate;
+	uniform sampler2D frameTexture; 
+	uniform sampler2D markerTexture; 
+	uniform int alternate; // 0 or 1 depending on last number
 	in vec2 texcoord;
 	void main(){
+
+		// get the coordinates of the pixel
 		vec2 st = texcoord.xy;	
+		// get the color of the marker at pixel position
 		vec4 watermarkColor = texelFetch(markerTexture, ivec2(st.xy) , 0);
-		//vec3 green = vec3(0,1.0f,0);
-		//gl_FragColor = vec4(green, 1);
-		//vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);
-		//gl_FragColor = imageColor;
+		float lambda = 0.30; // intensity of the marker
 		
 		if(alternate == 1){
-			
+			// Checks if pixelcolor of marker is black or white
 		 	if(watermarkColor.x != 0){
-				vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0) * 0.85;
-				gl_FragColor = imageColor;
+				// get the color of the background at pixle position
+				vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);
+
+				// clamp the color of the background
+				imageColor.rgb = clamp(imageColor.rgb *255.0, 0 + lambda * 100 , 255.0) / 255;
+
+				// decrese the color of the background depending on lambda
+				gl_FragColor = imageColor  * (1.0 - lambda);
         	}
 			else{
-				vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0) * 1.15;
-				gl_FragColor = imageColor;
+				vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);
+				imageColor.rgb = clamp(imageColor.rgb *255.0, 0, 255.0 - lambda * 100 ) / 255;
+
+				gl_FragColor = imageColor  * (1.0 + lambda);
 			}
 
     	} else {
        
         	if(watermarkColor.x == 0){
-            	vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0) * 0.85;
-            	gl_FragColor = imageColor;
+            	vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);
+			    imageColor.rgb = clamp(imageColor.rgb *255.0, 0 + lambda * 100, 255.0) / 255;
+
+            	gl_FragColor = imageColor  * (1.0 - lambda);
         	}
         	else{
-            	vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0) * 1.15;
-            	gl_FragColor = imageColor;
+            	vec4 imageColor = texelFetch(frameTexture, ivec2(st.xy), 0);
+				imageColor.rgb = clamp(imageColor.rgb *255.0, 0, 255.0 - lambda * 100 ) / 255;
+
+            	gl_FragColor = imageColor  * (1.0 + lambda);
         	}
 		}
 		

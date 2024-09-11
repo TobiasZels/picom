@@ -1,4 +1,4 @@
-marker:aruco
+marker:qr
 scenarios:a
 payload:1
-payload_content:x3
+payload_content: 12345

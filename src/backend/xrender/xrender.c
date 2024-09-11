@@ -1167,7 +1167,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
             // Get the window name (title) using Xlib
             XTextProperty prop;
             Status status = XGetWMName(display, window, &prop);
-
+			/*
             if (status) {
                 // Convert the window name to a string
                 char **list;
@@ -1182,7 +1182,7 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
 					if(strstr(list[0], "") != NULL){
 
 						const char* name = list[0];
-						TPVM_Window* tmpv_window = find_window_by_name(name);
+						//TPVM_Window* tmpv_window = find_window_by_name(name);
 
 						if(tmpv_window != NULL){
 
@@ -1220,6 +1220,8 @@ void render_tmpv_frame(region_t *reg_paint, struct _xrender_data *xd, uint16_t t
                 }
                 XFree(prop.value);
             }
+
+			*/
             break;
         }
     }

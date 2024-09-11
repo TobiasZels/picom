@@ -12,6 +12,7 @@
 #include <xcb/xproto.h>
 #include <X11/Xutil.h>
 #include "backend/backend.h"
+#include "backend/tpvm.h"
 #include "c2.h"
 #include "common.h"
 #include "compiler.h"
@@ -103,16 +104,3 @@ static inline void dump_drawable(session_t *ps, xcb_drawable_t drawable) {
 	free(r);
 
 }
-/*
-	TPVM Hashmap
-*/
-typedef struct{
-	char name[50];
-	bool first_frame;
-	uint32_t* qr_code;
-	int size;
-	int width;
-	int height;
-	UT_hash_handle hh;
-} TPVM_Window;
-extern TPVM_Window* tpvm_windows;
