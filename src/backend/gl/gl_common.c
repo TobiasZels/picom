@@ -353,6 +353,7 @@ static GLuint gl_average_texture_color(backend_t *base, struct backend_image *im
 	return result_texture;
 }
 extern bool IMG_FLIP;
+extern bool TPVM_ACTIVATED;
 
 extern uint32_t* QR_CODE;
 extern int FRAME_RATE;
@@ -518,153 +519,155 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	}
 	close(fd);
 	*/
-
-	// Set texture parameters
-	// Upload pixel data
-	int width = img->ewidth;
-	int height = img->eheight;
-	bool first_frame = false;
-
-	// generate CODES
-    uint32_t* pixeldata;
-	int code_width;
-	int code_height;
-	//strcat(payload_content, " ");
-	//strcat(payload_content, WINDOWNAME);
-
-	//size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
-	//char* test_name = (char*)malloc(text_size);
-	//int marker_number = 0;
-	//int aruco_size = 2;
-	//char* qr = "qr";
-	//uint32_t* scenario_pixels;
-
-	/*
-	if(strstr(marker, qr)){
-		marker_number = 0;
-	}
-	else if(strstr(marker, "aruco")){
-		marker_number = 2;
-	}
-	else{
-		marker_number = 1;
-	}
-
-	if(strstr(payload, "2")){
-		aruco_size = 1;
-	}
-	else if(strstr(payload, "20")){
-		aruco_size = 2;
-
-	}
-	else if(strstr(payload, "200")){
-		aruco_size = 3;
-
-	}
-
-	if(strstr(scenarios, "image")){
-		scenario_pixels = IMG_NONE;
-	}
-	else if(strstr(scenarios, "text_d")){
-		scenario_pixels = TEXT_D_NONE;
-	}
-	else if(strstr(scenarios, "text_w")){
-		scenario_pixels = TEXT_W_NONE;
-	}
-	else{
-		scenario_pixels = NULL;
-	}
-
-	if(test_name != NULL){
-		snprintf(test_name, text_size, "%s_%s_%s", marker, scenarios, payload);
-		printf("%s \n", test_name);
-	}
-	*/
-	// STUDY END
-
-	// Only use TPVM for windows bigger then 500 pixel to prevent toolbars etc.
-	// to have TPVM markers
-	if(width > 500 && height > 500){
-    	// Get the frame through generation or Hashmap
-		marker_frame frame;
-		frame = create_marker_with_mapping(WINDOWNAME, MARKER_QR, 15,7,true,height,width);
-		
-		// Copy all the necassary information out of the frame struct
-		pixeldata = malloc(frame.memorySize);
-		memcpy(pixeldata, frame.data, frame.memorySize);
-		code_width = frame.width;
-		code_height = frame.height;
-		first_frame = frame.negativeImage;
-
-		// Free the frame struct cause its no longer needed
-		free(frame.data);
-	}
-
-
 	GLuint customTexture;
-	glGenTextures(1, &customTexture);
-	
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, customTexture);
+	uint32_t* pixeldata;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, code_width, code_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeldata);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, inner->texture);
+	// Check if TPVM is enabled
+	if(TPVM_ACTIVATED){
+		// Set texture parameters
+		// Upload pixel data
+		int width = img->ewidth;
+		int height = img->eheight;
+		bool first_frame = false;
 
-	/* STUDY */
-	// Displays the image overlaying all the display information
-	// usefull for instructions during study
-	//if(scenario_pixels != NULL){
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, scenario_pixels);
-	//}
-   // GLuint framebuffer;
-    //glGenFramebuffers(1, &framebuffer);
-    //glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		// generate CODES
+		int code_width;
+		int code_height;
+		//strcat(payload_content, " ");
+		//strcat(payload_content, WINDOWNAME);
 
-    //GLuint renderTexture;
-    //glGenTextures(1, &renderTexture);
-    //glBindTexture(GL_TEXTURE_2D, renderTexture);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+		//size_t text_size = strlen(marker) + strlen(scenarios) + strlen(payload) + 3;
+		//char* test_name = (char*)malloc(text_size);
+		//int marker_number = 0;
+		//int aruco_size = 2;
+		//char* qr = "qr";
+		//uint32_t* scenario_pixels;
 
-	// Create the shader
-	GLuint shaderProgram = gl_create_program_from_str(vertex_shader, tpvm_shader);
+		/*
+		if(strstr(marker, qr)){
+			marker_number = 0;
+		}
+		else if(strstr(marker, "aruco")){
+			marker_number = 2;
+		}
+		else{
+			marker_number = 1;
+		}
 
-	// Give it the needed params
-	GLint markerTextureLoc = glGetUniformLocationChecked(shaderProgram, "markerTexture");
-    GLint frameTextureLoc = glGetUniformLocationChecked(shaderProgram, "frameTexture");
-    GLint alternateLoc = glGetUniformLocationChecked(shaderProgram, "alternate");
+		if(strstr(payload, "2")){
+			aruco_size = 1;
+		}
+		else if(strstr(payload, "20")){
+			aruco_size = 2;
 
-	GLint viewport_dimensions[2];
-	glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
+		}
+		else if(strstr(payload, "200")){
+			aruco_size = 3;
 
-	// Set projection matrix to gl viewport dimensions so we can use screen
-	// coordinates for all vertices
-	// Note: OpenGL matrices are column major
-	GLfloat projection_matrix[4][4] = {{2.0F / (GLfloat)viewport_dimensions[0], 0, 0, 0},
-	                                   {0, 2.0F / (GLfloat)viewport_dimensions[1], 0, 0},
-	                                   {0, 0, 0, 0},
-	                                   {-1, -1, 0, 1}};
+		}
 
-	int pml = glGetUniformLocationChecked(shaderProgram, "projection");
+		if(strstr(scenarios, "image")){
+			scenario_pixels = IMG_NONE;
+		}
+		else if(strstr(scenarios, "text_d")){
+			scenario_pixels = TEXT_D_NONE;
+		}
+		else if(strstr(scenarios, "text_w")){
+			scenario_pixels = TEXT_W_NONE;
+		}
+		else{
+			scenario_pixels = NULL;
+		}
 
-	glUseProgram(shaderProgram);
+		if(test_name != NULL){
+			snprintf(test_name, text_size, "%s_%s_%s", marker, scenarios, payload);
+			printf("%s \n", test_name);
+		}
+		*/
+		// STUDY END
 
-	glUniformMatrix4fv(pml, 1, false, projection_matrix[0]);
-    glUniform1i(frameTextureLoc, 0);   // Assuming frame texture is bound to unit 1
-	glUniform1i(markerTextureLoc, 1);  // Assuming marker texture is bound to unit 0
+		// Only use TPVM for windows bigger then 500 pixel to prevent toolbars etc.
+		// to have TPVM markers
+		if(width > 500 && height > 500){
+			// Get the frame through generation or Hashmap
+			marker_frame frame;
+			frame = create_marker_with_mapping(WINDOWNAME, MARKER_QR, 15,7,true,height,width);
+			
+			// Copy all the necassary information out of the frame struct
+			pixeldata = malloc(frame.memorySize);
+			memcpy(pixeldata, frame.data, frame.memorySize);
+			code_width = frame.width;
+			code_height = frame.height;
+			first_frame = frame.negativeImage;
 
-	glUniform1i(alternateLoc, first_frame ? 1 : 0); // Convert bool to int
+			// Free the frame struct cause its no longer needed
+			free(frame.data);
+		}
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, inner->texture);
+		glGenTextures(1, &customTexture);
+		
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, customTexture);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, code_width, code_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixeldata);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, inner->texture);
+
+		/* STUDY */
+		// Displays the image overlaying all the display information
+		// usefull for instructions during study
+		//if(scenario_pixels != NULL){
+		//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1920, 1080, 0, GL_RGBA, GL_UNSIGNED_BYTE, scenario_pixels);
+		//}
+	// GLuint framebuffer;
+		//glGenFramebuffers(1, &framebuffer);
+		//glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+		//GLuint renderTexture;
+		//glGenTextures(1, &renderTexture);
+		//glBindTexture(GL_TEXTURE_2D, renderTexture);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTexture, 0);
+
+		// Create the shader
+		GLuint shaderProgram = gl_create_program_from_str(vertex_shader, tpvm_shader);
+
+		// Give it the needed params
+		GLint markerTextureLoc = glGetUniformLocationChecked(shaderProgram, "markerTexture");
+		GLint frameTextureLoc = glGetUniformLocationChecked(shaderProgram, "frameTexture");
+		GLint alternateLoc = glGetUniformLocationChecked(shaderProgram, "alternate");
+
+		GLint viewport_dimensions[2];
+		glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
+
+		// Set projection matrix to gl viewport dimensions so we can use screen
+		// coordinates for all vertices
+		// Note: OpenGL matrices are column major
+		GLfloat projection_matrix[4][4] = {{2.0F / (GLfloat)viewport_dimensions[0], 0, 0, 0},
+										{0, 2.0F / (GLfloat)viewport_dimensions[1], 0, 0},
+										{0, 0, 0, 0},
+										{-1, -1, 0, 1}};
+
+		int pml = glGetUniformLocationChecked(shaderProgram, "projection");
+
+		glUseProgram(shaderProgram);
+
+		glUniformMatrix4fv(pml, 1, false, projection_matrix[0]);
+		glUniform1i(frameTextureLoc, 0);   // Assuming frame texture is bound to unit 1
+		glUniform1i(markerTextureLoc, 1);  // Assuming marker texture is bound to unit 0
+
+		glUniform1i(alternateLoc, first_frame ? 1 : 0); // Convert bool to int
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, inner->texture);
 
 
+	}
 	// Picom 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -708,11 +711,14 @@ static void _gl_compose(backend_t *base, struct backend_image *img, GLuint targe
 	glDeleteBuffers(2, bo);
 
 	glUseProgram(0);
-	glDeleteTextures(1, &customTexture);
 
 	gl_check_err();
 
-	free(pixeldata);
+	if(TPVM_ACTIVATED){
+		glDeleteTextures(1, &customTexture);
+		free(pixeldata);
+	}
+
 
 	return;
 }

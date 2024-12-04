@@ -26,6 +26,8 @@
  *  - stdlib.h: Standard lib.
  *  - string.h: For string functions.
  *  - math.h: For floor function.
+ *  - fcntl.h: To open fifo file.
+ *  - unistd.h: For standard symbolic constants and types.
  *  - zint.h: For Dot Code marker.
  *  - qrencode.h: For QR Code marker.
  *  - types.h: General types.
@@ -42,6 +44,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 #include <zint.h>
 #include <qrencode.h>
@@ -51,7 +56,7 @@
 #include "types.h"
 #include "utils.h"
 #include "backend/tpvm.h"
-
+#define FIFO_PATH "datafifo"
 
 
 /** 
@@ -394,7 +399,36 @@ marker_frame create_marker(
 
 
 char* get_id(){
-    return "18";
+    // check if fifo exists and create one if not
+    if(!access(FIFO_PATH, F_OK) == 0){
+        if(mkfifo(FIFO_PATH, 0777) == -1){
+            perror("mkfifo");
+            return 1;
+        }
+    }
+
+    // read the data from the fifo
+    char buffer[1024];
+    int fd;
+
+    fd = open(FIFO_PATH, O_NONBLOCK);
+    if(fd == -1){
+        perror("open");
+        return 1;
+    }
+
+    ssize_t read_bytes = read(fd, buffer, sizeof(buffer) - 1);
+    if (read_bytes > 0){
+        buffer[read_bytes] = '\0';
+        close(fd);
+        return strncat(buffer, " - ", sizeof(buffer) - strlen(buffer) - 3);
+    }
+    if (read_bytes == 0){
+        close(fd);
+        return "0 - ";
+    }
+
+    return "0 - ";
 }
 
 

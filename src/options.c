@@ -29,7 +29,7 @@ struct picom_option {
 	const char *arg_name;
 	const char *help;
 };
-
+bool TPVM_ACTIVATED = false;
 // clang-format off
 static const struct option *longopts = NULL;
 static const struct picom_option picom_options[] = {
@@ -184,6 +184,7 @@ static const struct picom_option picom_options[] = {
                                                                              "you want to attach a debugger to picom"},
     {"no-ewmh-fullscreen"          , no_argument      , 803, NULL          , "Do not use EWMH to detect fullscreen windows. Reverts to checking if a "
                                                                              "window is fullscreen based only on its size and coordinates."},
+	{"use-tpvm"          		   , no_argument     , 804, NULL           , "Activates TPVM rendering."},																		 
 };
 // clang-format on
 
@@ -747,6 +748,10 @@ bool get_cfg(options_t *opt, int argc, char *const *argv, bool shadow_enable,
 			break;
 		P_CASEBOOL(802, debug_mode);
 		P_CASEBOOL(803, no_ewmh_fullscreen);
+		case 804:
+			// TPVM
+			TPVM_ACTIVATED = true;
+			break;
 		default: usage(argv[0], 1); break;
 #undef P_CASEBOOL
 		}
